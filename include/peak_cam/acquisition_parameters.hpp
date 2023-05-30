@@ -62,6 +62,9 @@ struct Peak_Params
   std::string TriggerMode{"Off"};
   std::string TriggerSource{"off"};
   std::string TriggerActivation{"RisingEdge"};
+  int DeviceLinkThroughputLimit{125000000};
+  std::string Line1Source{"ExposureActive"};
+  int TriggerDivider{1};
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_

@@ -217,6 +217,27 @@ void PeakCamNode::getParams()
     throw ex;
   }
 
+  try {
+    m_peakParams.DeviceLinkThroughputLimit = declare_parameter("DeviceLinkThroughputLimit").get<int>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
+    throw ex;
+  }
+  
+  try {
+    m_peakParams.Line1Source = declare_parameter("Line1Source").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
+    throw ex;
+  }
+
+  try {
+    m_peakParams.TriggerDivider = declare_parameter("TriggerDivider").get<int>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "TriggerDivider provided was invalid");
+    throw ex;
+  }
+
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
   RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
@@ -237,6 +258,9 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerSource: %i", m_peakParams.TriggerSource);
   RCLCPP_INFO(this->get_logger(), "  TriggerActivation: %i", m_peakParams.TriggerActivation);
+  RCLCPP_INFO(this->get_logger(), "  DeviceLinkThroughputLimit: %i", m_peakParams.DeviceLinkThroughputLimit);
+  RCLCPP_INFO(this->get_logger(), "  Line1Source: %i", m_peakParams.Line1Source);
+  RCLCPP_INFO(this->get_logger(), "  TriggerDivider: %i", m_peakParams.TriggerDivider);
 }
 
 void PeakCamNode::openDevice()
@@ -356,6 +380,9 @@ void PeakCamNode::setDeviceParameters()
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - m_peakParams.ImageHeight) / 2);
   }
 
+  //Set DeviceLinkThroughputLimit Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("DeviceLinkThroughputLimit")->SetCurrentEntry(m_peakParams.DeviceLinkThroughputLimit);
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
   //Set GainAuto Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
@@ -386,6 +413,8 @@ void PeakCamNode::setDeviceParameters()
   if (m_peakParams.TriggerMode == "On" ) {
     // TODO(flynneva): add more parameters for customizing trigger
     // trigger acqusition, delayed trigger, etc.
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("Line1Source")
+      ->SetCurrentEntry(m_peakParams.Line1Source);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
       ->SetCurrentEntry("ExposureStart");
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
@@ -395,6 +424,8 @@ void PeakCamNode::setDeviceParameters()
       ->SetCurrentEntry(m_peakParams.TriggerActivation);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
       ->SetCurrentEntry("Timer0");
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerDivider")
+      ->SetCurrentEntry(m_peakParams.TriggerDivider);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
     std::string triggerTypeStart = "Timer0";
     // set hardline trigger settings
