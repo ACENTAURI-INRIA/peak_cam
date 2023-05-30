@@ -203,6 +203,20 @@ void PeakCamNode::getParams()
     throw ex;
   }
 
+  try {
+    m_peakParams.TriggerSource = declare_parameter("TriggerSource").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "The TriggerSource provided was invalid");
+    throw ex;
+  }
+
+  try {
+    m_peakParams.TriggerActivation = declare_parameter("TriggerActivation").get<std::string>();
+  } catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR(get_logger(), "The TriggerActivation provided was invalid");
+    throw ex;
+  }
+
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
   RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
@@ -222,6 +236,7 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  PixelFormat: %s", m_peakParams.PixelFormat.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerSource: %i", m_peakParams.TriggerSource);
+  RCLCPP_INFO(this->get_logger(), "  TriggerActivation: %i", m_peakParams.TriggerActivation);
 }
 
 void PeakCamNode::openDevice()
@@ -375,16 +390,18 @@ void PeakCamNode::setDeviceParameters()
       ->SetCurrentEntry("ExposureStart");
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-      ->SetCurrentEntry("Timer0Active");
+      ->SetCurrentEntry(m_peakParams.TriggerSource);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-      ->SetCurrentEntry("LevelHigh");
+      ->SetCurrentEntry(m_peakParams.TriggerActivation);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
       ->SetCurrentEntry("Timer0");
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
     std::string triggerTypeStart = "Timer0";
     // set hardline trigger settings
     std::string lineIn = "Line";
-    lineIn.push_back(m_peakParams.TriggerSource);  // GPIO pin number
+    char *chartrans=new char[m_peakParams.TriggerSource.length() + 1];
+    strcpy(chartrans,m_peakParams.TriggerSource.c_str());
+    lineIn.push_back(*chartrans);  // GPIO pin number
 
     // already including some future logic for other trigger types
     if (triggerTypeStart == "Counter0")

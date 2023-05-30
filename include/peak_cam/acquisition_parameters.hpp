@@ -60,7 +60,8 @@ struct Peak_Params
   std::string GainSelector;
   std::string PixelFormat{"RGB8"};
   std::string TriggerMode{"Off"};
-  int TriggerSource{0};
+  std::string TriggerSource{"off"};
+  std::string TriggerActivation{"RisingEdge"};
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
