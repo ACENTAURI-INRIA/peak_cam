@@ -60,7 +60,7 @@ struct Peak_Params
   std::string GainSelector;
   std::string PixelFormat{"RGB8"};
   std::string TriggerMode{"Off"};
-  std::string TriggerSource{"off"};
+  std::string TriggerSource{"Off"};
   std::string TriggerActivation{"RisingEdge"};
   int DeviceLinkThroughputLimit{125000000};
   std::string Line1Source{"ExposureActive"};
