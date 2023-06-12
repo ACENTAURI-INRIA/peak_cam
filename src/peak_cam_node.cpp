@@ -256,10 +256,10 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  PixelFormat: %s", m_peakParams.PixelFormat.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
-  RCLCPP_INFO(this->get_logger(), "  TriggerSource: %i", m_peakParams.TriggerSource);
-  RCLCPP_INFO(this->get_logger(), "  TriggerActivation: %i", m_peakParams.TriggerActivation);
+  RCLCPP_INFO(this->get_logger(), "  TriggerSource: %s", m_peakParams.TriggerSource.c_str());
+  RCLCPP_INFO(this->get_logger(), "  TriggerActivation: %s", m_peakParams.TriggerActivation.c_str());
   RCLCPP_INFO(this->get_logger(), "  DeviceLinkThroughputLimit: %i", m_peakParams.DeviceLinkThroughputLimit);
-  RCLCPP_INFO(this->get_logger(), "  Line1Source: %i", m_peakParams.Line1Source);
+  RCLCPP_INFO(this->get_logger(), "  Line1Source: %s", m_peakParams.Line1Source.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerDivider: %i", m_peakParams.TriggerDivider);
 }
 
