@@ -399,9 +399,7 @@ void PeakCamNode::setDeviceParameters()
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(m_peakParams.ExposureTime);
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
   }
-  //Set AcquisitionFrameRate Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+  
   //Set Gamma Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
@@ -463,6 +461,10 @@ void PeakCamNode::setDeviceParameters()
        ->SetCurrentEntry("RisingEdge");
     }
   } else {
+    //Set AcquisitionFrameRate Parameter
+  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+  
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode] No Trigger Specified, running continously");
   }
     
