@@ -21,8 +21,6 @@ find_package(Boost REQUIRED COMPONENTS system)
 # samples for ids peak library are usually installed to /usr/local/src/ids/samples/peak
 include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${IDS_PEAK_INCLUDE_DIR}
-  ${IDS_PEAK_IPL_INCLUDE_DIR}
 )
 
 ament_auto_add_library(${PROJECT_NAME} SHARED
@@ -30,8 +28,8 @@ ament_auto_add_library(${PROJECT_NAME} SHARED
 )
 
 target_link_libraries(${PROJECT_NAME}
-  ${IDS_PEAK_LIBRARIES}
-  ${IDS_PEAK_IPL_LIBRARIES}
+  ids_peak
+  ids_peak_ipl
 )
 
 
