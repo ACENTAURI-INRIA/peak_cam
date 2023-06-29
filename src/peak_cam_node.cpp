@@ -381,17 +381,41 @@ void PeakCamNode::setDeviceParameters()
   }
 
   //Set DeviceLinkThroughputLimit Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this caméra ");
+  }
+  
   //Set GainAuto Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainAuto is not a parameter for this caméra");
+  }
+  
   //Set GainSelector Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainSelector is not a parameter for this caméra");
+  }
+  
   //Set ExposureAuto Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ExposureAuto is not a parameter for this caméra");
+  }
+  
 
   //Set ExposureTime Parameter
   if(m_peakParams.ExposureAuto == "Off")
@@ -401,11 +425,23 @@ void PeakCamNode::setDeviceParameters()
   }
   
   //Set Gamma Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Gamma is set not a parameter for this caméra");
+  }
+  
   //Set PixelFormat Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+  try{
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+  }catch(const std::exception&)
+  {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PixelFormat is not a parameter for this caméra");
+  }
+  
 
   // Set TriggerMode
   if (m_peakParams.TriggerMode == "On" ) {
@@ -469,19 +505,24 @@ void PeakCamNode::setDeviceParameters()
   }
     
   // Set Parameters for ROS Image
-  if (m_peakParams.PixelFormat == "Mono8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
-    m_image_encoding = sensor_msgs::image_encodings::MONO8;
-    m_bytesPerPixel = 1;
-  } else if (m_peakParams.PixelFormat == "RGB8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
-    m_image_encoding = sensor_msgs::image_encodings::RGB8;
-    m_bytesPerPixel = 1;
-  } else if (m_peakParams.PixelFormat == "BGR8") {
-    m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
-    m_image_encoding = sensor_msgs::image_encodings::BGR8;
-    m_bytesPerPixel = 1;
+  try{
+    if (m_peakParams.PixelFormat == "Mono8") {
+      m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
+      m_image_encoding = sensor_msgs::image_encodings::MONO8;
+      m_bytesPerPixel = 1;
+    } else if (m_peakParams.PixelFormat == "RGB8") {
+      m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
+      m_image_encoding = sensor_msgs::image_encodings::RGB8;
+      m_bytesPerPixel = 1;
+    } else if (m_peakParams.PixelFormat == "BGR8") {
+      m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
+      m_image_encoding = sensor_msgs::image_encodings::BGR8;
+      m_bytesPerPixel = 1;
+    }
+  }catch(const std::exception&)
+  {
   }
+  
 }
 
 void PeakCamNode::acquisitionLoop()
