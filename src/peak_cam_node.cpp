@@ -386,6 +386,14 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
   }catch(const std::exception&)
   {
+    //Set DeviceClockFrequency Parameter
+    try{
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceClockFrequency")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
+    }catch(const std::exception&)
+    {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is not a parameter for this caméra ");
+    }
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this caméra ");
   }
   
