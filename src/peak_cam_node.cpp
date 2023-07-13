@@ -476,8 +476,8 @@ void PeakCamNode::setDeviceParameters()
     {
     }
      
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerDivider")
-      ->SetCurrentEntry(m_peakParams.TriggerDivider);
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")
+      ->SetValue(m_peakParams.TriggerDivider);
     try{
       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
     }catch(const std::exception&)
