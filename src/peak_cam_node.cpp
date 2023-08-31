@@ -386,6 +386,14 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
   }catch(const std::exception&)
   {
+    //Set DeviceClockFrequency Parameter
+    try{
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("DeviceClockFrequency")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
+    }catch(const std::exception&)
+    {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is not a parameter for this caméra ");
+    }
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this caméra ");
   }
   
@@ -447,8 +455,13 @@ void PeakCamNode::setDeviceParameters()
   if (m_peakParams.TriggerMode == "On" ) {
     // TODO(flynneva): add more parameters for customizing trigger
     // trigger acqusition, delayed trigger, etc.
+    try{
       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("Line1Source")
       ->SetCurrentEntry(m_peakParams.Line1Source);
+    }catch(const std::exception&)
+    {
+    }
+    
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
       ->SetCurrentEntry("ExposureStart");
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
@@ -456,11 +469,21 @@ void PeakCamNode::setDeviceParameters()
       ->SetCurrentEntry(m_peakParams.TriggerSource);
      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
       ->SetCurrentEntry(m_peakParams.TriggerActivation);
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
+    try{
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
       ->SetCurrentEntry("Timer0");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerDivider")
-      ->SetCurrentEntry(m_peakParams.TriggerDivider);
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
+    }catch(const std::exception&)
+    {
+    }
+     
+     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")
+      ->SetValue(m_peakParams.TriggerDivider);
+    try{
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
+    }catch(const std::exception&)
+    {
+    }
+     
     std::string triggerTypeStart = "Timer0";
     // set hardline trigger settings
     std::string lineIn = "Line";
@@ -469,33 +492,38 @@ void PeakCamNode::setDeviceParameters()
     lineIn.push_back(*chartrans);  // GPIO pin number
 
     // already including some future logic for other trigger types
-    if (triggerTypeStart == "Counter0")
+    try{
+      if (triggerTypeStart == "Counter0")
+      {
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterSelector")
+        ->SetCurrentEntry("Counter0");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerSource")
+        ->SetCurrentEntry(lineIn);
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerActivation")
+        ->SetCurrentEntry("RisingEdge");
+      }
+      else if (triggerTypeStart == "Timer0")
+      {
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
+        ->SetCurrentEntry("Timer0");
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerSource")
+        ->SetCurrentEntry(lineIn);
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerActivation")
+        ->SetCurrentEntry("RisingEdge");
+      }
+      else
+      {
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
+        ->SetCurrentEntry(triggerTypeStart);
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
+        ->SetCurrentEntry(lineIn);
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
+        ->SetCurrentEntry("RisingEdge");
+      }
+    }catch(const std::exception&)
     {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterSelector")
-       ->SetCurrentEntry("Counter0");
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("CounterTriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
     }
-    else if (triggerTypeStart == "Timer0")
-    {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-       ->SetCurrentEntry("Timer0");
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerTriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
-    }
-    else
-    {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-       ->SetCurrentEntry(triggerTypeStart);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-       ->SetCurrentEntry(lineIn);
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-       ->SetCurrentEntry("RisingEdge");
-    }
+    
   } else {
     //Set AcquisitionFrameRate Parameter
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
