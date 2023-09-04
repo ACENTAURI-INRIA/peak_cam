@@ -296,11 +296,11 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  DeviceLinkThroughputLimit: %i", m_peakParams.DeviceLinkThroughputLimit);
   RCLCPP_INFO(this->get_logger(), "  Line1Source: %s", m_peakParams.Line1Source.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerDivider: %i", m_peakParams.TriggerDivider);
-  RCLCPP_INFO(this->get_logger(), "  PtpEnable: %s", m_peakParams.PtpEnable.c_str());
-  RCLCPP_INFO(this->get_logger(), "  PtpSlaveOnly: %s", m_peakParams.PtpSlaveOnly.c_str());
-  RCLCPP_INFO(this->get_logger(), "  ChunkModeActive: %s", m_peakParams.ChunkModeActive.c_str());
+  RCLCPP_INFO(this->get_logger(), "  PtpEnable: %i", m_peakParams.PtpEnable);
+  RCLCPP_INFO(this->get_logger(), "  PtpSlaveOnly: %i", m_peakParams.PtpSlaveOnly);
+  RCLCPP_INFO(this->get_logger(), "  ChunkModeActive: %i", m_peakParams.ChunkModeActive);
   RCLCPP_INFO(this->get_logger(), "  ChunkSelector: %s", m_peakParams.ChunkSelector.c_str());
-  RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %s", m_peakParams.ChunkEnable.c_str());
+  RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %i", m_peakParams.ChunkEnable);
 }
 
 void PeakCamNode::openDevice()
