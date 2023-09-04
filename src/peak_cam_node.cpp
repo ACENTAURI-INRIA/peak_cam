@@ -120,7 +120,7 @@ void PeakCamNode::getParams()
   }
   
   try {
-    m_peakParams.AcquisitionFrameRate = declare_parameter("AcquisitionFrameRate").get<int>();
+    m_peakParams.AcquisitionFrameRate = declare_parameter("AcquisitionFrameRate").get<float>();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The AcquisitionFrameRate provided was invalid");
     throw ex;
