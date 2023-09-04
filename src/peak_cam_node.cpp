@@ -267,7 +267,7 @@ void PeakCamNode::getParams()
   }
 
   try {
-    m_peakParams.ChunkEnable = declare_parameter("ChunkEnable").get<std::string>();
+    m_peakParams.ChunkEnable = declare_parameter("ChunkEnable").get<bool>();
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "ChunkEnable provided was invalid");
     throw ex;
