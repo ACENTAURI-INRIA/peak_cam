@@ -65,6 +65,12 @@ struct Peak_Params
   int DeviceLinkThroughputLimit{125000000};
   std::string Line1Source{"ExposureActive"};
   int TriggerDivider{1};
+  bool PtpEnable{true};
+  bool PtpSlaveOnly{true};
+  bool ChunkModeActive{true};
+  std::string ChunkSelector{"Timestamp"};
+  bool ChunkEnable{true};
+
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
