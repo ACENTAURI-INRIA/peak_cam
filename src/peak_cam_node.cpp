@@ -654,13 +654,17 @@ void PeakCamNode::acquisitionLoop()
 {
   while (m_acquisitionLoopRunning) {
     try {
-      RCLCPP_INFO_STREAM(this->get_logger(),"time reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
       m_header->stamp = this->now();
       RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: Acquisition started");
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
-      RCLCPP_INFO_STREAM(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
-      
+
+      if (buffer->HasChunks())
+      {
+        // update nodemap with current chunk data
+        m_nodemapRemoteDevice->UpdateChunkNodes(buffer);
+        RCLCPP_INFO_STREAM(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
+      }
       auto ci = m_cameraInfoManager->getCameraInfo();
       m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
       m_cameraInfo->header = *m_header;
