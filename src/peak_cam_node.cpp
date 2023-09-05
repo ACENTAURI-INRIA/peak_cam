@@ -662,7 +662,7 @@ void PeakCamNode::acquisitionLoop()
       if (buffer->HasChunks())
       {
         // update nodemap with current chunk data
-        m_nodemapRemoteDevice->UpdateChunkNodes(buffer);
+        m_nodeMapRemoteDevice->UpdateChunkNodes(buffer);
         RCLCPP_INFO_STREAM(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
       }
       auto ci = m_cameraInfoManager->getCameraInfo();
