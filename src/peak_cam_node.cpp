@@ -34,6 +34,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include "peak_cam/peak_cam_node.hpp"
+#include<iostream>
+#include <cstdlib>
+#include <unistd.h>
 
 namespace peak_cam
 {
@@ -594,7 +597,7 @@ void PeakCamNode::setDeviceParameters()
   //set PTP parameters
   std::string ptpstatus;
   try{
-    ptpstatus = nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue();
+    ptpstatus = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue();
   }catch(const std::exception&)
   {
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Ptp not supported");
@@ -633,7 +636,7 @@ void PeakCamNode::setDeviceParameters()
       }
   }
   int count=0;
-  while (nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()=!"Slave")
+  while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()=!"Slave")
   {
     sleep(3);
     if (count==20){
