@@ -592,36 +592,58 @@ void PeakCamNode::setDeviceParameters()
   }
 
   //set PTP parameters
+  std::string ptpstatus;
   try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(m_peakParams.PtpEnable);
+    ptpstatus = nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue();
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Ptp not supported");
   }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
-  }catch(const std::exception&)
+  
+  if (ptpstatus =! "Slave"){
+    try{
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(m_peakParams.PtpEnable);
+      }catch(const std::exception&)
+      {
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a parameter for this caméra");
+      }
+      try{
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
+      }catch(const std::exception&)
+      {
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this caméra");
+      }
+      try{
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkModeActive")->SetValue(m_peakParams.ChunkModeActive);
+      }catch(const std::exception&)
+      {
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkModeActive is not a parameter for this caméra");
+      }
+      try{
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ChunkSelector")->SetCurrentEntry(m_peakParams.ChunkSelector);
+      }catch(const std::exception&)
+      {
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkSelector is not a parameter for this caméra");
+      }
+      try{
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkEnable")->SetValue(m_peakParams.ChunkEnable);
+      }catch(const std::exception&)
+      {
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkEnable is not a parameter for this caméra");
+      }
+  }
+  int count=0;
+  while (nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()=!"Slave")
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this caméra");
+    sleep(3);
+    if (count==20){
+      RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: PTP not set");
+      break;
+    }
+    count++;
   }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkModeActive")->SetValue(m_peakParams.ChunkModeActive);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkModeActive is not a parameter for this caméra");
-  }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ChunkSelector")->SetCurrentEntry(m_peakParams.ChunkSelector);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkSelector is not a parameter for this caméra");
-  }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkEnable")->SetValue(m_peakParams.ChunkEnable);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkEnable is not a parameter for this caméra");
-  }
+  
+  
   
 }
 
