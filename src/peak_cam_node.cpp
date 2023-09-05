@@ -603,7 +603,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Ptp not supported");
   }
   
-  if (ptpstatus =! "Slave"){
+  if (ptpstatus != "Slave"){
     try{
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(m_peakParams.PtpEnable);
       }catch(const std::exception&)
@@ -636,7 +636,7 @@ void PeakCamNode::setDeviceParameters()
       }
   }
   int count=0;
-  while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()=!"Slave")
+  while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()!="Slave")
   {
     sleep(3);
     if (count==20){
