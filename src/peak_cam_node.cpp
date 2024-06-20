@@ -95,186 +95,212 @@ PeakCamNode::~PeakCamNode()
 void PeakCamNode::getParams()
 {
   try {
-    m_frameId = declare_parameter("frame_id").get<std::string>();
+    declare_parameter("frame_id", "defaultFrameId");
+    get_parameter("frame_id", m_frameId);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The frame_id provided was invalid");
     throw ex;
   }
   
   try {
-    m_imageTopic = declare_parameter("image_topic").get<std::string>();
+    declare_parameter("image_topic", "defaultImageTopic");
+    get_parameter("image_topic", m_imageTopic);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The image_topic provided was invalid");
     throw ex;
   }
 
   try {
-    m_cameraInfoUrl = declare_parameter("camera_info_url").get<std::string>();
+    declare_parameter("camera_info_url", "defaultCameraInfoUrl");
+    get_parameter("camera_info_url", m_cameraInfoUrl);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The camera_info_url provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.ExposureTime = declare_parameter("ExposureTime").get<int>();
+    declare_parameter("ExposureTime", 10000);
+    get_parameter("ExposureTime", m_peakParams.ExposureTime);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ExposureTime provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.AcquisitionFrameRate = declare_parameter("AcquisitionFrameRate").get<int>();
+    declare_parameter("AcquisitionFrameRate", 30);
+    get_parameter("AcquisitionFrameRate", m_peakParams.AcquisitionFrameRate);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The AcquisitionFrameRate provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.ImageHeight = declare_parameter("ImageHeight").get<int>();
+    declare_parameter("ImageHeight", 1080);
+    get_parameter("ImageHeight", m_peakParams.ImageHeight);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ImageHeight provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.ImageWidth = declare_parameter("ImageWidth").get<int>();
+    declare_parameter("ImageWidth", 1920);
+    get_parameter("ImageWidth", m_peakParams.ImageWidth);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ImageWidth provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.UseOffset = declare_parameter("UseOffset").get<bool>();
+    declare_parameter("UseOffset", false);
+    get_parameter("UseOffset", m_peakParams.UseOffset);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The UseOffset provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.OffsetHeight = declare_parameter("OffsetHeight").get<int>();
+    declare_parameter("OffsetHeight", 0);
+    get_parameter("OffsetHeight", m_peakParams.OffsetHeight);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The OffsetHeight provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.OffsetWidth = declare_parameter("OffsetWidth").get<int>();
+    declare_parameter("OffsetWidth", 0);
+    get_parameter("OffsetWidth", m_peakParams.OffsetWidth);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The OffsetWidth provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.Gamma = declare_parameter("Gamma").get<double>();
+    declare_parameter("Gamma", 1.0);
+    get_parameter("Gamma", m_peakParams.Gamma);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The Gamma provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.selectedDevice = declare_parameter("selectedDevice").get<std::string>();
+    declare_parameter("selectedDevice", "defaultDevice");
+    get_parameter("selectedDevice", m_peakParams.selectedDevice);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The selectedDevice provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.ExposureAuto = declare_parameter("ExposureAuto").get<std::string>();
+    declare_parameter("ExposureAuto", "Off");
+    get_parameter("ExposureAuto", m_peakParams.ExposureAuto);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The ExposureAuto provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.GainAuto = declare_parameter("GainAuto").get<std::string>();
+    declare_parameter("GainAuto", "Off");
+    get_parameter("GainAuto", m_peakParams.GainAuto);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The GainAuto provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.PixelFormat = declare_parameter("PixelFormat").get<std::string>();
+    declare_parameter("PixelFormat", "Mono8");
+    get_parameter("PixelFormat", m_peakParams.PixelFormat);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The PixelFormat provided was invalid");
     throw ex;
   }
   
   try {
-    m_peakParams.GainSelector = declare_parameter("GainSelector").get<std::string>();
+    declare_parameter("GainSelector", "All");
+    get_parameter("GainSelector", m_peakParams.GainSelector);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The GainSelector provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.TriggerSource = declare_parameter("TriggerSource").get<std::string>();
+    declare_parameter("TriggerSource", "Software");
+    get_parameter("TriggerSource", m_peakParams.TriggerSource);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The TriggerSource provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.TriggerActivation = declare_parameter("TriggerActivation").get<std::string>();
+    declare_parameter("TriggerActivation", "RisingEdge");
+    get_parameter("TriggerActivation", m_peakParams.TriggerActivation);
   } catch (rclcpp::ParameterTypeException & ex) {
     RCLCPP_ERROR(get_logger(), "The TriggerActivation provided was invalid");
     throw ex;
   }
 
   try {
-    m_peakParams.DeviceLinkThroughputLimit = declare_parameter("DeviceLinkThroughputLimit").get<int>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    m_peakParams.Line1Source = declare_parameter("Line1Source").get<std::string>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
-    throw ex;
-  }
+  declare_parameter("DeviceLinkThroughputLimit", 1000000);
+  get_parameter("DeviceLinkThroughputLimit", m_peakParams.DeviceLinkThroughputLimit);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.TriggerDivider = declare_parameter("TriggerDivider").get<int>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "TriggerDivider provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("Line1Source", "defaultSource");
+  get_parameter("Line1Source", m_peakParams.Line1Source);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.PtpEnable = declare_parameter("PtpEnable").get<bool>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "PtpEnable provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("TriggerDivider", 1);
+  get_parameter("TriggerDivider", m_peakParams.TriggerDivider);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "TriggerDivider provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.PtpSlaveOnly = declare_parameter("PtpSlaveOnly").get<bool>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "PtpSlaveOnly provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("PtpEnable", false);
+  get_parameter("PtpEnable", m_peakParams.PtpEnable);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "PtpEnable provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.ChunkModeActive = declare_parameter("ChunkModeActive").get<bool>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "ChunkModeActive provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("PtpSlaveOnly", false);
+  get_parameter("PtpSlaveOnly", m_peakParams.PtpSlaveOnly);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "PtpSlaveOnly provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.ChunkSelector = declare_parameter("ChunkSelector").get<std::string>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "ChunkSelector provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("ChunkModeActive", false);
+  get_parameter("ChunkModeActive", m_peakParams.ChunkModeActive);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "ChunkModeActive provided was invalid");
+  throw ex;
+}
 
-  try {
-    m_peakParams.ChunkEnable = declare_parameter("ChunkEnable").get<bool>();
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "ChunkEnable provided was invalid");
-    throw ex;
-  }
+try {
+  declare_parameter("ChunkSelector", "defaultSelector");
+  get_parameter("ChunkSelector", m_peakParams.ChunkSelector);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "ChunkSelector provided was invalid");
+  throw ex;
+}
+
+try {
+  declare_parameter("ChunkEnable", false);
+  get_parameter("ChunkEnable", m_peakParams.ChunkEnable);
+} catch (rclcpp::ParameterTypeException & ex) {
+  RCLCPP_ERROR(get_logger(), "ChunkEnable provided was invalid");
+  throw ex;
+}
 
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
@@ -435,9 +461,9 @@ void PeakCamNode::setDeviceParameters()
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
     }catch(const std::exception&)
     {
-      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is not a parameter for this caméra ");
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is not a parameter for this camera ");
     }
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this caméra ");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this camera ");
   }
   
   //Set GainAuto Parameter
@@ -446,7 +472,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainAuto is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainAuto is not a parameter for this camera");
   }
   
   //Set GainSelector Parameter
@@ -455,7 +481,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainSelector is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainSelector is not a parameter for this camera");
   }
   
   //Set ExposureAuto Parameter
@@ -464,7 +490,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ExposureAuto is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ExposureAuto is not a parameter for this camera");
   }
   
 
@@ -481,7 +507,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Gamma is set not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Gamma is set not a parameter for this camera");
   }
   
   //Set PixelFormat Parameter
@@ -490,7 +516,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PixelFormat is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PixelFormat is not a parameter for this camera");
   }
   
 
@@ -608,42 +634,48 @@ void PeakCamNode::setDeviceParameters()
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(m_peakParams.PtpEnable);
       }catch(const std::exception&)
       {
-        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a parameter for this caméra");
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a parameter for this camera");
       }
       try{
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
       }catch(const std::exception&)
       {
-        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this caméra");
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this camera");
       }
   }
-  int count=0;
-  while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()!="Slave")
-  {
-    sleep(3);
-    if (count==20){
-      RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: PTP not set");
-      break;
+  try {
+    int count=0;
+    while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()!="Slave")
+    {
+      sleep(3);
+      if (count==20) {
+        RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: PTP not set");
+        break;
+      }
+      count++;
     }
-    count++;
   }
+  catch (const std::exception &e) {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpStatus is not a parameter for this camera");
+  }
+
   try{
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkModeActive")->SetValue(m_peakParams.ChunkModeActive);
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkModeActive is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkModeActive is not a parameter for this camera");
   }
   try{
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ChunkSelector")->SetCurrentEntry(m_peakParams.ChunkSelector);
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkSelector is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkSelector is not a parameter for this camera");
   }
   try{
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkEnable")->SetValue(m_peakParams.ChunkEnable);
   }catch(const std::exception&)
   {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkEnable is not a parameter for this caméra");
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkEnable is not a parameter for this camera");
   }
   
   
