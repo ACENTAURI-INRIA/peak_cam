@@ -308,7 +308,7 @@ try {
   RCLCPP_INFO(this->get_logger(), "  camera_info_url: %s", m_cameraInfoUrl.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureTime: %i", m_peakParams.ExposureTime);
   RCLCPP_INFO(this->get_logger(), "  AcquisitionFrameRate: %i", m_peakParams.AcquisitionFrameRate);
-  RCLCPP_INFO(this->get_logger(), "  Gamma: %d", m_peakParams.Gamma);
+  RCLCPP_INFO(this->get_logger(), "  Gamma: %f", m_peakParams.Gamma);
   RCLCPP_INFO(this->get_logger(), "  ImageHeight: %i", m_peakParams.ImageHeight);
   RCLCPP_INFO(this->get_logger(), "  ImageWidth: %i", m_peakParams.ImageWidth);
   RCLCPP_INFO(this->get_logger(), "  OffsetHeight: %i", m_peakParams.OffsetHeight);
@@ -521,7 +521,7 @@ void PeakCamNode::setDeviceParameters()
   
 
   // Set TriggerMode
-  if (m_peakParams.TriggerMode == "On" ) {
+  if (m_peakParams.TriggerMode == "On" || m_peakParams.TriggerSource.compare("Off") != 0) {
     // TODO(flynneva): add more parameters for customizing trigger
     // trigger acqusition, delayed trigger, etc.
     try{
@@ -593,12 +593,19 @@ void PeakCamNode::setDeviceParameters()
     {
     }
     
-  } else {
-    //Set AcquisitionFrameRate Parameter
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
-  
+  }
+  else {
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode] No Trigger Specified, running continously");
+    try {
+      //Set AcquisitionFrameRate Parameter
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
+    }
+    catch(const std::exception&e) {
+      // Something failed. Report the failure
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Failed to set AcquisitionFrameRate. Check configuration of the camera. Error was:% "
+            << e.what());
+    }
   }
     
   // Set Parameters for ROS Image
@@ -619,44 +626,81 @@ void PeakCamNode::setDeviceParameters()
   }catch(const std::exception&)
   {
   }
-
-  //set PTP parameters
-  std::string ptpstatus;
-  try{
-    ptpstatus = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue();
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Ptp not supported");
-  }
-  
-  if (ptpstatus != "Slave"){
-    try{
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(m_peakParams.PtpEnable);
-      }catch(const std::exception&)
-      {
-        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a parameter for this camera");
-      }
-      try{
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
-      }catch(const std::exception&)
-      {
-        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this camera");
-      }
-  }
+  // Process PTP related parameters.
+  // Not all cameras support PTP, check if yes by trying to read the PtpEnable node, and fail silently
+  bool ptpSupported = true;
   try {
-    int count=0;
-    while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()!="Slave")
-    {
-      sleep(3);
-      if (count==20) {
-        RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: PTP not set");
-        break;
-      }
-      count++;
-    }
+      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
   }
-  catch (const std::exception &e) {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpStatus is not a parameter for this camera");
+  catch(const std::exception &e) {
+    // Issue a warning about PTP support only if we are supposed to activate/use PTP
+    if (m_peakParams.PtpEnable) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PTP does not appear to be supported on this camera: "
+                    << e.what()
+                    << ". You may ignore this error if you know what you are doing.");
+    }
+    ptpSupported = false;
+  }
+  if (ptpSupported) {
+    if (m_peakParams.PtpEnable) {
+      // We are supposed to enable PTP. If it is already enabled, we go on to handle the PtpSlaveOnly parameter.
+      // Otherwise we enable and continue to process the PtpSlaveOnly parameter.
+      bool enabled = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
+      if (! enabled) {
+        try {
+          m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(true);
+        }
+        catch(const std::exception&) {
+          RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a writeble parameter for this camera");
+        }
+      }
+      enabled = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
+      if (enabled) {
+        if (m_peakParams.PtpSlaveOnly) {
+          try {
+            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
+          }
+          catch(const std::exception&) {
+            RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this camera");
+          }
+          try {
+            int count=0;
+            while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue().compare("Slave") != 0) {
+              sleep(3);
+              if (count >= 20) {
+                RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: PTP Slave status expected, got: "
+                    << m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue());
+                break;
+              }
+              count++;
+            }
+          }
+          catch (const std::exception &e) {
+            RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Failed to query the PTPStatus node of the camera: " << e.what());
+          }
+        }
+        else {
+          // Actual status is not relevant, just log it for info
+          RCLCPP_INFO_STREAM(get_logger(), "[PeakCamNode]: Current PTP status is "
+                    << m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()
+                    << ". If not Slave or Master, this may prevent acquisition to start...");
+        }
+      }
+      else {
+        // Enabling PTP has failed.
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Failed to enable PTP for this camera");
+      }
+    }
+    else {
+      // The PtpEnable parameter is false, but the camera (if PTP is supported) may have its PTP enabled by default, and
+      // if its PTP status is not Slave or Master, this may prevent acquisition to start. Force PtpEnable to false as requested by
+      // the parameter but fail silently if failure occurs.
+      try {
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(false);
+      }
+      catch(const std::exception&) {
+      }
+    }
   }
 
   try{
@@ -696,13 +740,13 @@ void PeakCamNode::acquisitionLoop()
         // update nodemap with current chunk data
         m_nodeMapRemoteDevice->UpdateChunkNodes(buffer);
         m_header->stamp = rclcpp::Time(m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
-        RCLCPP_INFO_STREAM(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
+        RCLCPP_INFO_STREAM_ONCE(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
       }
       auto ci = m_cameraInfoManager->getCameraInfo();
       m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
       m_cameraInfo->header = *m_header;
 
-      const auto imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
+      const auto imageBufferSize __attribute__((unused)) = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
       auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixelFormat);
       cv::Mat cvImage;
@@ -724,7 +768,12 @@ void PeakCamNode::acquisitionLoop()
       RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[PeakCamNode]: Publishing data");
       // queue buffer
       m_dataStream->QueueBuffer(buffer);
-    } catch (const std::exception &e) {
+    }
+    catch (const peak::core::TimeoutException &e) {
+        RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: EXCEPTION: " << e.what());
+        RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: Timeout Error: check the triggering of your camera.");
+    }
+    catch (const std::exception &e) {
       RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: EXCEPTION: " << e.what());
       RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: Acquisition loop stopped, device may be disconnected!");
       RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: No device reset available");
