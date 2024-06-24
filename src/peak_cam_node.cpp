@@ -632,14 +632,18 @@ void PeakCamNode::setDeviceParameters()
   try {
       m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
   }
-  catch(const std::exception &e) {
+  catch (const peak::core::NotFoundException &e) {
     // Issue a warning about PTP support only if we are supposed to activate/use PTP
     if (m_peakParams.PtpEnable) {
         RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PTP does not appear to be supported on this camera: "
                     << e.what()
-                    << ". You may ignore this error if you know what you are doing.");
+                    << ". You may ignore this error...");
     }
     ptpSupported = false;
+  }
+  catch(const std::exception &e) {
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Error accessing parameter PtpEnable: "
+                    << e.what());
   }
   if (ptpSupported) {
     if (m_peakParams.PtpEnable) {
