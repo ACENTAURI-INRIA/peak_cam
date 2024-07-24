@@ -62,6 +62,7 @@ struct Peak_Params
   std::string TriggerMode{"Off"};
   std::string TriggerSource{"Off"};
   std::string TriggerActivation{"RisingEdge"};
+  int PixelClock{25*1000*1000};
   int DeviceLinkThroughputLimit{125000000};
   std::string Line1Source{"ExposureActive"};
   int TriggerDivider{1};
@@ -70,7 +71,11 @@ struct Peak_Params
   bool ChunkModeActive{true};
   std::string ChunkSelector{"Timestamp"};
   bool ChunkEnable{true};
-
+  bool FlashActive{false};
+  std::string FlashReference{""};
+  double FlashDuration{0.0};
+  double FlashStartDelay{1.0};
+  bool FlashInvertSignal{false};
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_

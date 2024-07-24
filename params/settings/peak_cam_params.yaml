@@ -50,3 +50,18 @@ GainAuto: "Continuous"
 # GainSelector Setting 
 # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
 GainSelector: "DigitalAll"
+
+# Flash Control related parameters.
+# Activate the generation of the flash signal if set to true.
+FlashActive: true
+# Selects the internal event that will be the source to start the "FlashActive" signal.
+# eg. "ExposureActive", "ExposureStart", "GlobalFlashWindow", ...
+FlashReference: "ExposureStart"
+# Sets the duration (in microseconds) of the "FlashActive" signal. Only used if the FlashReference 
+# is ExposureStart.
+FlashDuration: 15000.0
+# Sets the delay (in microseconds) for the start of the "FlashActive" signal. Seems that it cannot be
+# smaller than 1us...
+FlashStartDelay: 1.0
+# Invert the signal driving the optocoupled output (Line1).
+FlashInvertSignal: false

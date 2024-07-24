@@ -103,9 +103,16 @@ private:
   // acquisitionLoop function and bool are public to run on particular thread
   void acquisitionLoop();
   void getParams();
+  void getFlashParams();
   void openDevice();
   void setDeviceParameters();
+  void setFlashControlParameters();
   void closeDevice();
+
+  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::EnumerationNode> node, const std::string &value);
+  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::FloatNode> node, const double value);
+  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::IntegerNode> node, const int value);
+  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::BooleanNode> node, const bool value);
 };
 
 } // namespace peak_cam
