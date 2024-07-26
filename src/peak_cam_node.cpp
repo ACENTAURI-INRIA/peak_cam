@@ -41,6 +41,12 @@
 namespace peak_cam
 {
 
+using rcl_interfaces::msg::ParameterDescriptor;
+using peak::core::nodes::EnumerationNode;
+using peak::core::nodes::FloatNode;
+using peak::core::nodes::BooleanNode;
+using peak::core::nodes::IntegerNode;
+
 PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
 : rclcpp::Node("peak_cam_node", options)
 {
@@ -94,125 +100,24 @@ PeakCamNode::~PeakCamNode()
 
 void PeakCamNode::getParams()
 {
-  try {
-    declare_parameter("frame_id", "defaultFrameId");
-    get_parameter("frame_id", m_frameId);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The frame_id provided was invalid");
-    throw ex;
-  }
+  declareParameter("frame_id", "camera", "Frame used in the ROS2 header of the published images", m_frameId);
+  declareParameter("image_topic", "image_raw", "Name of published image topic", m_imageTopic)  ;
+  declareParameter("camera_info_url", "defaultCameraInfoUrl", "URL of the camera_info data file, eg. calibration data", m_cameraInfoUrl);
+  declareParameter("ExposureTime", 10000, "Exposure time, in  microseconds, of the image sensor", m_peakParams.ExposureTime);
+  declareParameter("AcquisitionFrameRate", 30, "Frame rate of the acquisition, in Hz", m_peakParams.AcquisitionFrameRate);
+  declareParameter("ImageHeight", 1080, "Image height, in pixels", m_peakParams.ImageHeight);
+  declareParameter("ImageWidth", 1920, "Image width, in pixels", m_peakParams.ImageWidth);
+  declareParameter("UseOffset", false, "If true, use parameters OffsetHeight and OffsetWidth to specify the image ROI", m_peakParams.UseOffset);
+  declareParameter("OffsetHeight", 0, m_peakParams.OffsetHeight);
+  declareParameter("OffsetWidth", 0, m_peakParams.OffsetWidth);
   
-  try {
-    declare_parameter("image_topic", "defaultImageTopic");
-    get_parameter("image_topic", m_imageTopic);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The image_topic provided was invalid");
-    throw ex;
-  }
+  declareParameter("Gamma", 1.0, m_peakParams.Gamma);
 
-  try {
-    declare_parameter("camera_info_url", "defaultCameraInfoUrl");
-    get_parameter("camera_info_url", m_cameraInfoUrl);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The camera_info_url provided was invalid");
-    throw ex;
-  }
+  declareParameter("selectedDevice", "0000000000", m_peakParams.selectedDevice);
 
-  try {
-    declare_parameter("ExposureTime", 10000);
-    get_parameter("ExposureTime", m_peakParams.ExposureTime);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The ExposureTime provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("AcquisitionFrameRate", 30);
-    get_parameter("AcquisitionFrameRate", m_peakParams.AcquisitionFrameRate);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The AcquisitionFrameRate provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("ImageHeight", 1080);
-    get_parameter("ImageHeight", m_peakParams.ImageHeight);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The ImageHeight provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("ImageWidth", 1920);
-    get_parameter("ImageWidth", m_peakParams.ImageWidth);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The ImageWidth provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("UseOffset", false);
-    get_parameter("UseOffset", m_peakParams.UseOffset);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The UseOffset provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("OffsetHeight", 0);
-    get_parameter("OffsetHeight", m_peakParams.OffsetHeight);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The OffsetHeight provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("OffsetWidth", 0);
-    get_parameter("OffsetWidth", m_peakParams.OffsetWidth);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The OffsetWidth provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("Gamma", 1.0);
-    get_parameter("Gamma", m_peakParams.Gamma);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The Gamma provided was invalid");
-    throw ex;
-  }
-
-  try {
-    declare_parameter("selectedDevice", "defaultDevice");
-    get_parameter("selectedDevice", m_peakParams.selectedDevice);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The selectedDevice provided was invalid");
-    throw ex;
-  }
-
-  try {
-    declare_parameter("ExposureAuto", "Off");
-    get_parameter("ExposureAuto", m_peakParams.ExposureAuto);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The ExposureAuto provided was invalid");
-    throw ex;
-  }
-
-  try {
-    declare_parameter("GainAuto", "Off");
-    get_parameter("GainAuto", m_peakParams.GainAuto);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The GainAuto provided was invalid");
-    throw ex;
-  }
-  
-  try {
-    declare_parameter("PixelFormat", "Mono8");
-    get_parameter("PixelFormat", m_peakParams.PixelFormat);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The PixelFormat provided was invalid");
-    throw ex;
-  }
+  declareParameter("ExposureAuto", "Off", m_peakParams.ExposureAuto);
+  declareParameter("GainAuto", "Off", m_peakParams.GainAuto);
+  declareParameter("PixelFormat", "Mono8", m_peakParams.PixelFormat);
   
   try {
     declare_parameter("GainSelector", "All");
@@ -221,86 +126,37 @@ void PeakCamNode::getParams()
     RCLCPP_ERROR(get_logger(), "The GainSelector provided was invalid");
     throw ex;
   }
+  declareParameter("TriggerMode", "Off",
+        "Set to \"On\" to activate trigger based acquisition and use other Trigger-related parameters to specify the triggering events, \"Off\" for freerun acquisition using specified frame rate.",
+        m_peakParams.TriggerMode);
+  declareParameter("TriggerSource", "Software", "", m_peakParams.TriggerSource);
+  declareParameter("TriggerActivation", "RisingEdge", "", m_peakParams.TriggerActivation);
+  declareParameter("TriggerDivider", 1, "", m_peakParams.TriggerDivider);
+
+  declareParameter("PixelClock", 20.0, "Pixel clock of the image sensor, in MHz", m_peakParams.PixelClock);
 
   try {
-    declare_parameter("TriggerSource", "Software");
-    get_parameter("TriggerSource", m_peakParams.TriggerSource);
+    declare_parameter("DeviceLinkThroughputLimit", 1000000);
+    get_parameter("DeviceLinkThroughputLimit", m_peakParams.DeviceLinkThroughputLimit);
   } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The TriggerSource provided was invalid");
+    RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
     throw ex;
   }
 
   try {
-    declare_parameter("TriggerActivation", "RisingEdge");
-    get_parameter("TriggerActivation", m_peakParams.TriggerActivation);
+    declare_parameter("Line1Source", "defaultSource");
+    get_parameter("Line1Source", m_peakParams.Line1Source);
   } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The TriggerActivation provided was invalid");
+    RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
     throw ex;
   }
 
-  try {
-  declare_parameter("DeviceLinkThroughputLimit", 1000000);
-  get_parameter("DeviceLinkThroughputLimit", m_peakParams.DeviceLinkThroughputLimit);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
-  throw ex;
-}
+  declareParameter("PtpEnable", false, "Enable/Disable PTP (IEEE1588) on the camera. Actually used only with camera that support this feature", m_peakParams.PtpEnable);
+  declareParameter("PtpSlaveOnly", false, "If PTP is enabled force camera to act as a PTP slave only. Ignored otherwise", m_peakParams.PtpSlaveOnly);
 
-try {
-  declare_parameter("Line1Source", "defaultSource");
-  get_parameter("Line1Source", m_peakParams.Line1Source);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("TriggerDivider", 1);
-  get_parameter("TriggerDivider", m_peakParams.TriggerDivider);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "TriggerDivider provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("PtpEnable", false);
-  get_parameter("PtpEnable", m_peakParams.PtpEnable);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "PtpEnable provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("PtpSlaveOnly", false);
-  get_parameter("PtpSlaveOnly", m_peakParams.PtpSlaveOnly);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "PtpSlaveOnly provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("ChunkModeActive", false);
-  get_parameter("ChunkModeActive", m_peakParams.ChunkModeActive);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "ChunkModeActive provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("ChunkSelector", "defaultSelector");
-  get_parameter("ChunkSelector", m_peakParams.ChunkSelector);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "ChunkSelector provided was invalid");
-  throw ex;
-}
-
-try {
-  declare_parameter("ChunkEnable", false);
-  get_parameter("ChunkEnable", m_peakParams.ChunkEnable);
-} catch (rclcpp::ParameterTypeException & ex) {
-  RCLCPP_ERROR(get_logger(), "ChunkEnable provided was invalid");
-  throw ex;
-}
+  declareParameter("ChunkModeActive", false, m_peakParams.ChunkModeActive);
+  declareParameter("ChunkSelector", "Timestamp", m_peakParams.ChunkSelector);
+  declareParameter("ChunkEnable", false, m_peakParams.ChunkEnable);
 
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
@@ -311,13 +167,14 @@ try {
   RCLCPP_INFO(this->get_logger(), "  Gamma: %f", m_peakParams.Gamma);
   RCLCPP_INFO(this->get_logger(), "  ImageHeight: %i", m_peakParams.ImageHeight);
   RCLCPP_INFO(this->get_logger(), "  ImageWidth: %i", m_peakParams.ImageWidth);
+  RCLCPP_INFO(this->get_logger(), "  UseOffset: %i", m_peakParams.UseOffset);
   RCLCPP_INFO(this->get_logger(), "  OffsetHeight: %i", m_peakParams.OffsetHeight);
   RCLCPP_INFO(this->get_logger(), "  OffsetWidth: %i", m_peakParams.OffsetWidth);
-  RCLCPP_INFO(this->get_logger(), "  UseOffset: %i", m_peakParams.UseOffset);
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainAuto: %s", m_peakParams.GainAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
+  RCLCPP_INFO(this->get_logger(), "  PixelClock: %f MHz", m_peakParams.PixelClock);
   RCLCPP_INFO(this->get_logger(), "  PixelFormat: %s", m_peakParams.PixelFormat.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerSource: %s", m_peakParams.TriggerSource.c_str());
@@ -330,6 +187,29 @@ try {
   RCLCPP_INFO(this->get_logger(), "  ChunkModeActive: %i", m_peakParams.ChunkModeActive);
   RCLCPP_INFO(this->get_logger(), "  ChunkSelector: %s", m_peakParams.ChunkSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %i", m_peakParams.ChunkEnable);
+}
+
+template<typename T>
+void PeakCamNode::declareParameter(const std::string &name, const T& default_value, const std::string & description,
+        T& storage)
+{
+  std::ostringstream os;
+  os << description << ". Default is " << default_value;
+  std::string full_desc = os.str();
+  declare_parameter(name, default_value, ParameterDescriptor().set__description(full_desc));
+  try {
+    get_parameter(name, storage);
+  }
+  catch (rclcpp::ParameterTypeException & ex) {
+    RCLCPP_ERROR_STREAM(get_logger(), "The value provided for parameter '" << name << "' was invalid");
+    throw ex;
+  }
+}
+
+template<typename T>
+void PeakCamNode::declareParameter(const std::string &name, const T& default_value, T& storage)
+{
+  declareParameter(name, default_value, "No description provided", storage);
 }
 
 void PeakCamNode::openDevice()
@@ -455,17 +335,14 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
   }catch(const std::exception&)
   {
-    //Set DeviceClockFrequency Parameter
-    try{
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("DeviceClockFrequency")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
-    }catch(const std::exception&)
-    {
-      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceClockFrequency is not a parameter for this camera ");
-    }
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is not a parameter for this camera ");
   }
-  
+  //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter
+  if (setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", "Sensor")) {
+    if (setRemoteDeviceParameter<FloatNode>("DeviceClockFrequency", m_peakParams.PixelClock * 1000 * 1000)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelClock is set to " << m_peakParams.PixelClock << " MHz");
+    }
+  }
+
   //Set GainAuto Parameter
   try{
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
@@ -484,30 +361,23 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainSelector is not a parameter for this camera");
   }
   
-  //Set ExposureAuto Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ExposureAuto")->SetCurrentEntry(m_peakParams.ExposureAuto);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ExposureAuto is not a parameter for this camera");
+  //Set Exposure related Parameter
+  if (setRemoteDeviceParameter<EnumerationNode>("ExposureMode", "Timed")) {
+    if(m_peakParams.ExposureAuto == "Off") {
+      if (setRemoteDeviceParameter<FloatNode>("ExposureTime", m_peakParams.ExposureTime)) {
+        double v = getRemoteDeviceParameter<FloatNode, double>("ExposureTime");
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << v << " us");
+      }
+    }
+    else {
+      setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto);
+    }
   }
-  
 
-  //Set ExposureTime Parameter
-  if(m_peakParams.ExposureAuto == "Off")
-  {
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("ExposureTime")->SetValue(m_peakParams.ExposureTime);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << m_peakParams.ExposureTime << " microseconds");
-  }
-  
   //Set Gamma Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("Gamma")->SetValue(m_peakParams.Gamma);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << m_peakParams.Gamma);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Gamma is set not a parameter for this camera");
+  if (setRemoteDeviceParameter<FloatNode>("Gamma", m_peakParams.Gamma)) {
+    double v = getRemoteDeviceParameter<FloatNode, double>("Gamma");
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << v);
   }
   
   //Set PixelFormat Parameter
@@ -521,39 +391,24 @@ void PeakCamNode::setDeviceParameters()
   
 
   // Set TriggerMode
-  if (m_peakParams.TriggerMode == "On" || m_peakParams.TriggerSource.compare("Off") != 0) {
+  if (m_peakParams.TriggerMode == "On") {
     // TODO(flynneva): add more parameters for customizing trigger
     // trigger acqusition, delayed trigger, etc.
-    try{
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("Line1Source")
-      ->SetCurrentEntry(m_peakParams.Line1Source);
-    }catch(const std::exception&)
-    {
+    setRemoteDeviceParameter<EnumerationNode>("Line1Source", m_peakParams.Line1Source);
+
+    // Apply all trigger related parameters to the "ExposureStart" trigger
+    std::string selected_trigger = "ExposureStart";
+    if (setRemoteDeviceParameter<EnumerationNode>("TriggerSelector", selected_trigger)) {
+      setRemoteDeviceParameter<EnumerationNode>("TriggerMode", "On");
+      setRemoteDeviceParameter<EnumerationNode>("TriggerActivation", m_peakParams.TriggerActivation);
+      setRemoteDeviceParameter<EnumerationNode>("TriggerSource", m_peakParams.TriggerSource);
+      setRemoteDeviceParameter<IntegerNode>("TriggerDivider", m_peakParams.TriggerDivider);
     }
-    
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSelector")
-      ->SetCurrentEntry("ExposureStart");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerMode")->SetCurrentEntry("On");
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerSource")
-      ->SetCurrentEntry(m_peakParams.TriggerSource);
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TriggerActivation")
-      ->SetCurrentEntry(m_peakParams.TriggerActivation);
-    try{
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("TimerSelector")
-      ->SetCurrentEntry("Timer0");
-    }catch(const std::exception&)
-    {
-    }
-     
-     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TriggerDivider")
-      ->SetValue(m_peakParams.TriggerDivider);
-    try{
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("TimerDuration")->SetValue(500000.0);
-    }catch(const std::exception&)
-    {
-    }
-     
+
     std::string triggerTypeStart = "Timer0";
+    setRemoteDeviceParameter<EnumerationNode>("TimerSelector", triggerTypeStart);
+    setRemoteDeviceParameter<FloatNode>("TimerDuration", 500000.0);
+
     // set hardline trigger settings
     std::string lineIn = "Line";
     char *chartrans=new char[m_peakParams.TriggerSource.length() + 1];
@@ -561,6 +416,7 @@ void PeakCamNode::setDeviceParameters()
     lineIn.push_back(*chartrans);  // GPIO pin number
 
     // already including some future logic for other trigger types
+    // TODO test and experiment with various cameras
     try{
       if (triggerTypeStart == "Counter0")
       {
@@ -595,19 +451,18 @@ void PeakCamNode::setDeviceParameters()
     
   }
   else {
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode] No Trigger Specified, running continously");
-    try {
-      //Set AcquisitionFrameRate Parameter
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::FloatNode>("AcquisitionFrameRate")->SetValue(m_peakParams.AcquisitionFrameRate);
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << m_peakParams.AcquisitionFrameRate << " Hz");
-    }
-    catch(const std::exception&e) {
-      // Something failed. Report the failure
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Failed to set AcquisitionFrameRate. Check configuration of the camera. Error was:% "
-            << e.what());
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: No Trigger Specified, running continuously");
+    std::string selected_trigger = "ExposureStart";
+    if (setRemoteDeviceParameter<EnumerationNode>("TriggerSelector", selected_trigger)) {
+      if (setRemoteDeviceParameter<EnumerationNode>("TriggerMode", "Off")) {
+        if (setRemoteDeviceParameter<FloatNode>("AcquisitionFrameRate", m_peakParams.AcquisitionFrameRate)) {
+          double v = getRemoteDeviceParameter<FloatNode, double>("AcquisitionFrameRate");
+          RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << v << " Hz");
+        }
+      }
     }
   }
-    
+
   // Set Parameters for ROS Image
   try{
     if (m_peakParams.PixelFormat == "Mono8") {
@@ -627,15 +482,27 @@ void PeakCamNode::setDeviceParameters()
   {
   }
   // Process PTP related parameters.
-  // Not all cameras support PTP, check if yes by trying to read the PtpEnable node, and fail silently
+  setPTPDeviceParameters();
+
+  if (setRemoteDeviceParameter<BooleanNode>("ChunkModeActive", m_peakParams.ChunkModeActive)) {
+    if (m_peakParams.ChunkModeActive) {
+      if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", m_peakParams.ChunkSelector)) {
+        setRemoteDeviceParameter<BooleanNode>("ChunkEnable", m_peakParams.ChunkEnable);
+      }
+    }
+  }
+}
+
+void PeakCamNode::setPTPDeviceParameters()
+{
   bool ptpSupported = true;
   try {
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
   }
   catch (const peak::core::NotFoundException &e) {
     // Issue a warning about PTP support only if we are supposed to activate/use PTP
     if (m_peakParams.PtpEnable) {
-        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PTP does not appear to be supported on this camera: "
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PTP does not appear to be supported on this camera: "
                     << e.what()
                     << ". You may ignore this error...");
     }
@@ -643,7 +510,8 @@ void PeakCamNode::setDeviceParameters()
   }
   catch(const std::exception &e) {
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Error accessing parameter PtpEnable: "
-                    << e.what());
+                      << e.what());
+    ptpSupported = false;
   }
   if (ptpSupported) {
     if (m_peakParams.PtpEnable) {
@@ -651,83 +519,92 @@ void PeakCamNode::setDeviceParameters()
       // Otherwise we enable and continue to process the PtpSlaveOnly parameter.
       bool enabled = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
       if (! enabled) {
-        try {
-          m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(true);
-        }
-        catch(const std::exception&) {
-          RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpEnable is not a writeble parameter for this camera");
-        }
+        setRemoteDeviceParameter<BooleanNode>("PtpEnable", true);
       }
-      enabled = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->Value();
+      enabled = getRemoteDeviceParameter<BooleanNode, bool>("PtpEnable");
       if (enabled) {
         if (m_peakParams.PtpSlaveOnly) {
-          try {
-            m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpSlaveOnly")->SetValue(m_peakParams.PtpSlaveOnly);
-          }
-          catch(const std::exception&) {
-            RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PtpSlaveOnly is not a parameter for this camera");
-          }
-          try {
-            int count=0;
-            while (m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue().compare("Slave") != 0) {
-              sleep(3);
-              if (count >= 20) {
-                RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: PTP Slave status expected, got: "
-                    << m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue());
-                break;
+          if (setRemoteDeviceParameter<BooleanNode>("PtpSlaveOnly", true)) {
+            try {
+              int count=0;
+              while (getRemoteDeviceParameter<EnumerationNode, std::string>("PtpStatus").compare("Slave") != 0) {
+                // m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue().compare("Slave") != 0) {
+                sleep(3);
+                if (count >= 20) {
+                  std::string v = getRemoteDeviceParameter<EnumerationNode, std::string>("PtpStatus");
+                  RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: PTP Slave status expected, got: " << v);
+                  break;
+                }
+                count++;
               }
-              count++;
             }
-          }
-          catch (const std::exception &e) {
-            RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Failed to query the PTPStatus node of the camera: " << e.what());
+            catch (const std::exception &e) {
+              RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Failed to query the PTPStatus node of the camera: " << e.what());
+            }
           }
         }
         else {
           // Actual status is not relevant, just log it for info
+          std::string v = getRemoteDeviceParameter<EnumerationNode, std::string>("PtpStatus");
           RCLCPP_INFO_STREAM(get_logger(), "[PeakCamNode]: Current PTP status is "
-                    << m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PtpStatus")->CurrentEntry()->SymbolicValue()
-                    << ". If not Slave or Master, this may prevent acquisition to start...");
+                      << v << ". If not Slave or Master, this may prevent acquisition to start...");
         }
       }
       else {
-        // Enabling PTP has failed.
-        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Failed to enable PTP for this camera");
+          // Enabling PTP has failed.
+          RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: Failed to enable PTP for this camera");
       }
     }
     else {
       // The PtpEnable parameter is false, but the camera (if PTP is supported) may have its PTP enabled by default, and
-      // if its PTP status is not Slave or Master, this may prevent acquisition to start. Force PtpEnable to false as requested by
-      // the parameter but fail silently if failure occurs.
-      try {
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("PtpEnable")->SetValue(false);
-      }
-      catch(const std::exception&) {
-      }
+      // if its PTP status is not Slave or Master, this may prevent acquisition to start. Force PtpEnable to false as requested
+      // by the parameter.
+      setRemoteDeviceParameter<BooleanNode>("PtpEnable", false);
     }
   }
 
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkModeActive")->SetValue(m_peakParams.ChunkModeActive);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkModeActive is not a parameter for this camera");
+}
+
+template<class N, typename V>
+bool PeakCamNode::setRemoteDeviceParameter(const std::string &node_name, const V &value)
+{
+  std::shared_ptr<N> node;
+  try {
+    node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+    setRemoteNodeValue(node, value);
   }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("ChunkSelector")->SetCurrentEntry(m_peakParams.ChunkSelector);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkSelector is not a parameter for this camera");
+  catch (const peak::core::NotFoundException &e) {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+    return false;
   }
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::BooleanNode>("ChunkEnable")->SetValue(m_peakParams.ChunkEnable);
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ChunkEnable is not a parameter for this camera");
+  catch (const peak::core::OutOfRangeException &e) {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: Out of range value for parameter " << node_name << ": " << value);
+    describeRemoteNodeRange(node);
+    return false;
   }
-  
-  
-  
+  catch (const std::exception &e) {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: Error accessing " << node_name << " parameter: " << e.what());
+    return false;
+  }
+  return true;
+}
+
+void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<EnumerationNode> node)
+{
+  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]: Permitted values are:");
+  for (auto entry : node->Entries()) {
+    RCLCPP_INFO(this->get_logger(), "        %s", entry->SymbolicValue().c_str());
+  }
+}
+
+void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<FloatNode> node)
+{
+  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%f, %f]", node->Minimum(), node->Maximum());
+}
+
+void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<IntegerNode> node)
+{
+  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%ld, %ld]", node->Minimum(), node->Maximum());
 }
 
 void PeakCamNode::acquisitionLoop()

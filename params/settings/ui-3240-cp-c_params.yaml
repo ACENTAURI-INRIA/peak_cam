@@ -1,0 +1,44 @@
+/**:
+  ros__parameters:
+    frame_id: "peak_cam"
+    image_topic: image_raw
+
+    # choose which device to enter by entering its serial number here
+    # if you dont know it, run this node once and all serial nodes should be printed out
+    selectedDevice: "4103809853"
+
+    # configure your desired image size
+    # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
+    ImageHeight: 1024
+    ImageWidth: 1280
+
+    PixelFormat: "RGB8"
+    PixelClock: 30.0
+
+    ExposureAuto: "Off"
+    # ExposureTime in μs
+    # limits the Acquisition Framerate
+    # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
+    ExposureTime: 10000
+
+    # AcquisitionFrameRate in Hz
+    # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
+    AcquisitionFrameRate: 10
+
+    # Set to "On" to activate trigger based acquisition and use other Trigger related parameters to specify the triggering events,
+    # or "Off" for freerun acquisition using specified frame rate.
+    # GenICam gives several choices for the event being triggered, named "TriggerSlector" such as "ExposureStart", "AcquisitionStart",
+    # "AcquisitionEnd", etc. Currently peak_cam uses "ExposureStart".
+    TriggerMode: "Off"
+
+    # Specifies the internal signal or physical input Line to use as the trigger source. 
+    # Acceptable values depend on the camera, but "Software" usually means a software triggered acquisition, "Line0" is the
+    # optocoupled trigger input on most IDS cameras, etc.
+    TriggerSource: "Line0"
+
+    # This parameter sets the kind of events expected on the TriggerSource. Possible values are, for example,
+    # "RisingEdge", "FallingEdge", "AnyEdge", "LevelHigh", "LevelLow".
+    TriggerActivation: "RisingEdge"
+  
+    # Divider of the triggering events (the one specified by TriggerActivation).
+    TriggerDivider: 1

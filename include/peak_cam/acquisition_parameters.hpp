@@ -62,6 +62,7 @@ struct Peak_Params
   std::string TriggerMode{"Off"};
   std::string TriggerSource{"Off"};
   std::string TriggerActivation{"RisingEdge"};
+  double PixelClock{20.0};
   int DeviceLinkThroughputLimit{125000000};
   std::string Line1Source{"ExposureActive"};
   int TriggerDivider{1};

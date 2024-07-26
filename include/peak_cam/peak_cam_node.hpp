@@ -49,7 +49,15 @@
 
 //OpenCV Headers
 #include "opencv2/opencv.hpp"
+#if defined __has_include
+#if __has_include("cv_bridge/cv_bridge.hpp")
+#include "cv_bridge/cv_bridge.hpp"
+#else
 #include "cv_bridge/cv_bridge.h"
+#endif
+#else
+#include "cv_bridge/cv_bridge.h"
+#endif
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -64,6 +72,11 @@
 
 namespace peak_cam
 {
+
+using peak::core::nodes::EnumerationNode;
+using peak::core::nodes::FloatNode;
+using peak::core::nodes::BooleanNode;
+using peak::core::nodes::IntegerNode;
 
 class PeakCamNode : public rclcpp::Node
 {
@@ -105,7 +118,55 @@ private:
   void getParams();
   void openDevice();
   void setDeviceParameters();
+  void setPTPDeviceParameters();
   void closeDevice();
+
+  // Various helper functions to help for the decalaration of parameters.
+  template<typename T>
+    void declareParameter(const std::string &name, const T& default_value, const std::string &description, T& storage);
+  template<typename T>
+    void declareParameter(const std::string &name, const T& default_value, T& storage);
+  void declareParameter(const std::string &name, const char *default_value, const std::string &description, std::string& storage)
+  {
+    this->declareParameter(name, std::string(default_value), description, storage);
+  }
+  void declareParameter(const std::string &name, const char *default_value, std::string& storage)
+  {
+    this->declareParameter(name, std::string(default_value), storage);
+  }
+
+  // Various helper functions to set/get parameter values in the camera
+  template<class N, typename V>
+    bool setRemoteDeviceParameter(const std::string &node_name, const V& value);
+
+  template<class N, typename V>
+    V getRemoteDeviceParameter(const std::string &node_name)
+  {
+    auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+    return getRemoteNodeValue(node);
+  }
+  template<class N, typename V>
+    V getRemoteDeviceParameter(const char *node_name)
+  {
+    auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+    return getRemoteNodeValue(node);
+  }
+
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::EnumerationNode> node, const std::string &value) { node->SetCurrentEntry(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::FloatNode> node, const double value) { node->SetValue(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::IntegerNode> node, const int64_t value) { node->SetValue(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::BooleanNode> node, const bool value) { node->SetValue(value); }
+
+  std::string getRemoteNodeValue(std::shared_ptr<peak::core::nodes::EnumerationNode> node) { return node->CurrentEntry()->SymbolicValue(); }
+  double getRemoteNodeValue(std::shared_ptr<peak::core::nodes::FloatNode> node) { return node->Value(); }
+  int64_t getRemoteNodeValue(std::shared_ptr<peak::core::nodes::IntegerNode> node) { return node->Value(); }
+  bool getRemoteNodeValue(std::shared_ptr<peak::core::nodes::BooleanNode> node) { return node->Value(); }
+
+  void describeRemoteNodeRange(std::shared_ptr<EnumerationNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<FloatNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<IntegerNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<BooleanNode>) {}
+
 };
 
 } // namespace peak_cam

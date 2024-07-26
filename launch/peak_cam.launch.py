@@ -1,18 +1,16 @@
 import launch
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-from ament_index_python.packages import get_package_share_directory
-from pathlib import Path
-import yaml
-
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, TextSubstitution
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
-    parameters_file_path = Path(get_package_share_directory('peak_cam'), 'params', 'settings', 'front.yaml')
-    camera_info_path = Path(get_package_share_directory('peak_cam'), 'params', 'intrinsics', 'default_camera_info.yaml')
 
-    with open(parameters_file_path, 'r') as f:
-        params = yaml.safe_load(f)['/**']['ros__parameters']
-    print(params)
+    config_arg = launch.actions.DeclareLaunchArgument("config", default_value='peak_cam_params.yaml')
+    camera_info_arg = launch.actions.DeclareLaunchArgument("camera_info", default_value='default_camera_info.yaml')
+
+    parameters_file = PathJoinSubstitution([FindPackageShare('peak_cam'), 'params', 'settings', LaunchConfiguration('config')])
+    camera_info_file = [ TextSubstitution(text='file://'), PathJoinSubstitution([FindPackageShare('peak_cam'), 'params', 'intrinsics', LaunchConfiguration('camera_info')]) ]
 
     container = ComposableNodeContainer(
         name='peak_cam_container',
@@ -25,10 +23,14 @@ def generate_launch_description():
                 plugin='peak_cam::PeakCamNode',
                 name='peak_cam',
                 parameters=[
-                    params,
-                    {'camera_info_url': 'file://' + str(camera_info_path)}])
+                    parameters_file,
+                    {'camera_info_url': camera_info_file}],
+                extra_arguments=[{'use_intra_process_comms': True}],
+            )
         ],
         output='screen'
     )
 
-    return launch.LaunchDescription([container])
+    return launch.LaunchDescription(
+        [config_arg, camera_info_arg, container]
+    )

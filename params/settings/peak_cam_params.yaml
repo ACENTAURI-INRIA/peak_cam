@@ -5,48 +5,75 @@
 # To add more parameters to your camera please view the IDS Vision Reference at 
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
+/**:
+  ros__parameters:
+    frame_id: "peak_cam"
+    image_topic: image_raw
 
-frame_id: "peak_cam"
-image_topic: image_raw
+    # choose which device to enter by entering its serial number here
+    # if you dont know it, run this node once and all serial nodes should be printed out
+    selectedDevice: "0000000000"
 
+    # configure your desired image size
+    # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
+    ImageHeight: 1024
+    ImageWidth: 1280
 
-# choose which device to enter by entering its serial number here
-# if you dont know it, run this node once and all serial nodes should be printed out
-selectedDevice: "0000000000"
+    # Pixel clock of the image sensor, in MHz
+    PixelClock: 40.0
 
-# configure your desired image size
-# needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
-ImageHeight: 320
-ImageWidth: 1088
+    # Pixelformat
+    # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+    # Possible: ["Mono8", "RGB8", "BGR8"] as string! 
+    PixelFormat: "RGB8"
 
-# Pixelformat
-# In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
-# Possible: ["Mono8", "RGB8", "BGR8"] as string! 
-PixelFormat: "RGB8"
+    # AcquisitionFrameRate in Hz
+    # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
+    AcquisitionFrameRate: 10
 
-# ExposureTime in μs
-# limits the Acquisition Framerate
-# When ExposureAuto is set to "Once" or "Continuous" the value won't be used
-ExposureTime: 5000
+    # Gamma
+    # Range [0.3, ..., 3.0]
+    # If no Gamma correction is needed set to 1.0
+    Gamma: 1.0
 
-# AcquisitionFrameRate in Hz
-# WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 10
+    # ExposureTime in μs
+    # can indirectly set limits on the Acquisition Framerate
+    # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
+    ExposureTime: 5000
 
-# Gamma
-# Range [0.3, ..., 3.0]
-# If no Gamma correction ist needed set to 1.0
-Gamma: 1.0
+    # ExposureAuto Setting
+    # If ExposureAuto is Off set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    ExposureAuto: "Off"
 
-# ExposureAuto Setting 
-# If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
-# Possible: ["Off", "Once", "Continuous"] as string! 
-ExposureAuto: "Continuous"
+    # GainAuto Setting
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    GainAuto: "Continuous"
 
-# GainAuto Setting 
-# Possible: ["Off", "Once", "Continuous"] as string! 
-GainAuto: "Continuous"
+    # GainSelector Setting
+    # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+    GainSelector: "DigitalAll"
 
-# GainSelector Setting 
-# Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
-GainSelector: "DigitalAll"
+    # Set to "On" to activate trigger based acquisition and use other Trigger related parameters to specify the triggering events,
+    # or "Off" for freerun acquisition using specified frame rate.
+    # GenICam gives several choices for the event being triggered, named "TriggerSlector" such as "ExposureStart", "AcquisitionStart",
+    # "AcquisitionEnd", etc. Currently peak_cam uses "ExposureStart".
+    TriggerMode: "Off"
+
+    # Specifies the internal signal or physical input Line to use as the trigger source. 
+    # Acceptable values depend on the camera, but "Software" usually means a software triggered acquisition, "Line0" is the
+    # optocoupled trigger input on most IDS cameras, GPIO1 is called "Line2" (because Line1 is usually the flash output), etc.
+    TriggerSource: "Line0"
+
+    # This parameter sets the kind of events expected on the TriggerSource. Possible values are, for example,
+    # "RisingEdge", "FallingEdge", "AnyEdge", "LevelHigh", "LevelLow".
+    TriggerActivation: "RisingEdge"
+
+    # Divider of the triggering events (the one specified by TriggerActivation).
+    TriggerDivider: 1
+
+    # Enable/Disable PTP (IEEE1588) on the camera. Actually used only with camera that support this feature
+    PtpEnable: false
+
+    # If PTP is enabled force camera to act as a PTP slave only. Ignored otherwise
+    PtpSlaveOnly: false
