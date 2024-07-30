@@ -338,7 +338,7 @@ void PeakCamNode::setDeviceParameters()
   }
   //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter
   if (getRemoteDeviceParameter<EnumerationNode, std::string>("DeviceClockSelector").compare("Sensor") == 0
-      || setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", "Sensor")) {
+      || setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", std::string("Sensor"))) {
     if (setRemoteDeviceParameter<FloatNode>("DeviceClockFrequency", m_peakParams.PixelClock * 1000 * 1000)) {
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelClock is set to " << m_peakParams.PixelClock << " MHz");
     }
@@ -367,16 +367,20 @@ void PeakCamNode::setDeviceParameters()
   }
   
   //Set Exposure related Parameter
-  if (setRemoteDeviceParameter<EnumerationNode>("ExposureMode", "Timed")) {
-    if(m_peakParams.ExposureAuto == "Off") {
-      if (setRemoteDeviceParameter<FloatNode>("ExposureTime", m_peakParams.ExposureTime)) {
-        double v = getRemoteDeviceParameter<FloatNode, double>("ExposureTime");
-        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << v << " us");
+  if(m_peakParams.ExposureAuto == "Off") {
+    if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+      if (setRemoteDeviceParameter<EnumerationNode>("ExposureMode", std::string("Timed"))) {
+        if (setRemoteDeviceParameter<FloatNode>("ExposureTime", m_peakParams.ExposureTime)) {
+          double v = getRemoteDeviceParameter<FloatNode, double>("ExposureTime");
+          RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << v << " us");
+        }
       }
     }
-    else {
-      setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto);
-    }
+  }
+  else {
+    setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto);
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
   }
 
   //Set Gamma Parameter
@@ -404,7 +408,7 @@ void PeakCamNode::setDeviceParameters()
     // Apply all trigger related parameters to the "ExposureStart" trigger
     std::string selected_trigger = "ExposureStart";
     if (setRemoteDeviceParameter<EnumerationNode>("TriggerSelector", selected_trigger)) {
-      setRemoteDeviceParameter<EnumerationNode>("TriggerMode", "On");
+      setRemoteDeviceParameter<EnumerationNode>("TriggerMode", std::string("On"));
       setRemoteDeviceParameter<EnumerationNode>("TriggerActivation", m_peakParams.TriggerActivation);
       setRemoteDeviceParameter<EnumerationNode>("TriggerSource", m_peakParams.TriggerSource);
       setRemoteDeviceParameter<IntegerNode>("TriggerDivider", m_peakParams.TriggerDivider);
@@ -459,7 +463,7 @@ void PeakCamNode::setDeviceParameters()
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: No Trigger Specified, running continuously");
     std::string selected_trigger = "ExposureStart";
     if (setRemoteDeviceParameter<EnumerationNode>("TriggerSelector", selected_trigger)) {
-      if (setRemoteDeviceParameter<EnumerationNode>("TriggerMode", "Off")) {
+      if (setRemoteDeviceParameter<EnumerationNode>("TriggerMode", std::string("Off"))) {
         if (setRemoteDeviceParameter<FloatNode>("AcquisitionFrameRate", m_peakParams.AcquisitionFrameRate)) {
           double v = getRemoteDeviceParameter<FloatNode, double>("AcquisitionFrameRate");
           RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << v << " Hz");
@@ -576,10 +580,34 @@ bool PeakCamNode::setRemoteDeviceParameter(const std::string &node_name, const V
   std::shared_ptr<N> node;
   try {
     node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
-    setRemoteNodeValue(node, value);
+    auto access_status = node->AccessStatus();
+    bool readable = (access_status == peak::core::nodes::NodeAccessStatus::ReadOnly || access_status == peak::core::nodes::NodeAccessStatus::ReadWrite);
+    bool writable = (access_status == peak::core::nodes::NodeAccessStatus::WriteOnly || access_status == peak::core::nodes::NodeAccessStatus::ReadWrite);
+    if (writable) {
+      setRemoteNodeValue(node, value);
+    }
+    else if (readable) {
+      V actual_value = getRemoteNodeValue(node);
+      return (actual_value == value);
+    }
+    else {
+      return false;
+    }
   }
   catch (const peak::core::NotFoundException &e) {
     RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+    return false;
+  }
+  catch (const peak::core::NotImplementedException &e) {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not implemented for this camera", node_name.c_str());
+    return false;
+  }
+  catch (const peak::core::BadAccessException &e) {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not accessible for this camera", node_name.c_str());
+    return false;
+  }
+  catch (const peak::core::NotAvailableException &e) {
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not available for this camera", node_name.c_str());
     return false;
   }
   catch (const peak::core::OutOfRangeException &e) {

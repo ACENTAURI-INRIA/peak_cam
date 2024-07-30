@@ -142,14 +142,27 @@ private:
   template<class N, typename V>
     V getRemoteDeviceParameter(const std::string &node_name)
   {
-    auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
-    return getRemoteNodeValue(node);
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeValue(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
   }
+
   template<class N, typename V>
     V getRemoteDeviceParameter(const char *node_name)
   {
-    auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
-    return getRemoteNodeValue(node);
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeValue(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name);
+      return V{};
+    }
   }
 
   void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::EnumerationNode> node, const std::string &value) { node->SetCurrentEntry(value); }
