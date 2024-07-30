@@ -337,9 +337,14 @@ void PeakCamNode::setDeviceParameters()
   {
   }
   //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter
-  if (setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", "Sensor")) {
+  if (getRemoteDeviceParameter<EnumerationNode, std::string>("DeviceClockSelector").compare("Sensor") == 0
+      || setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", "Sensor")) {
     if (setRemoteDeviceParameter<FloatNode>("DeviceClockFrequency", m_peakParams.PixelClock * 1000 * 1000)) {
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelClock is set to " << m_peakParams.PixelClock << " MHz");
+    }
+    else {
+      double f = getRemoteDeviceParameter<FloatNode, double>("DeviceClockFrequency");
+      RCLCPP_INFO_STREAM(get_logger(), "[PeakCamNode]: Failed to set PixelClock, current value is " << f/(1000*1000) << " MHz");
     }
   }
 
