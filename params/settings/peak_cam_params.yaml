@@ -46,13 +46,17 @@
     # Possible: ["Off", "Once", "Continuous"] as string! 
     ExposureAuto: "Off"
 
+    # GainSelector Setting, this designates the actual gain that will be
+    # controlled with either GainAuto or Gain.
+    # Possible: ["All", "AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+    GainSelector: "All"
+
     # GainAuto Setting
     # Possible: ["Off", "Once", "Continuous"] as string! 
     GainAuto: "Continuous"
 
-    # GainSelector Setting
-    # Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
-    GainSelector: "DigitalAll"
+    # If GainAuto is "Off", the following value is applied to the gain selected by GainSelector.
+    Gain: 1.0
 
     # Set to "On" to activate trigger based acquisition and use other Trigger related parameters to specify the triggering events,
     # or "Off" for freerun acquisition using specified frame rate.
@@ -62,7 +66,7 @@
 
     # Specifies the internal signal or physical input Line to use as the trigger source. 
     # Acceptable values depend on the camera, but "Software" usually means a software triggered acquisition, "Line0" is the
-    # optocoupled trigger input on most IDS cameras, GPIO1 is called "Line2" (because Line1 is usually the flash output), etc.
+    # optocoupled trigger input on most IDS cameras, GPIO1 is called "Line2" (Line1 is usually the flash output), etc.
     TriggerSource: "Line0"
 
     # This parameter sets the kind of events expected on the TriggerSource. Possible values are, for example,
@@ -75,5 +79,18 @@
     # Enable/Disable PTP (IEEE1588) on the camera. Actually used only with camera that support this feature
     PtpEnable: false
 
-    # If PTP is enabled force camera to act as a PTP slave only. Ignored otherwise
+    # If PTP is enabled, this setting, if true, forces camera to act as a PTP slave only. Ignored otherwise
     PtpSlaveOnly: false
+
+    # If True Chunk data (ie. metadata) is included in the payload of the image. if False Chunk data is not included.
+    # For each required kind of metadata, set ChunkSelector and enable it using ChunkEnable.
+    ChunkModeActive: false
+    # Set this parameter to the metadata expected to be transmitted in the image payload and use ChunkEnable to
+    # enable it. Values for ChunkSelector are, for example, "Timestamp", "PixelFormat", "Gain", etc. depending on
+    # the camera.
+    ChunkSelector: ""
+    ChunkEnable: false
+
+    # A comma separated list of Chunks to enable in the camera. Can be used instead of ChunkSelector and ChunkEnable to
+    # enable several chunks. Not yet implemented.
+    # ChunksEnabled: ""

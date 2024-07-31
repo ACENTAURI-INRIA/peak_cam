@@ -116,16 +116,12 @@ void PeakCamNode::getParams()
   declareParameter("selectedDevice", "0000000000", m_peakParams.selectedDevice);
 
   declareParameter("ExposureAuto", "Off", m_peakParams.ExposureAuto);
-  declareParameter("GainAuto", "Off", m_peakParams.GainAuto);
   declareParameter("PixelFormat", "Mono8", m_peakParams.PixelFormat);
   
-  try {
-    declare_parameter("GainSelector", "All");
-    get_parameter("GainSelector", m_peakParams.GainSelector);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "The GainSelector provided was invalid");
-    throw ex;
-  }
+  declareParameter("GainSelector", "All", m_peakParams.GainSelector);
+  declareParameter("GainAuto", "Off", m_peakParams.GainAuto);
+  declareParameter("Gain", 1.0, m_peakParams.Gain);
+
   declareParameter("TriggerMode", "Off",
         "Set to \"On\" to activate trigger based acquisition and use other Trigger-related parameters to specify the triggering events, \"Off\" for freerun acquisition using specified frame rate.",
         m_peakParams.TriggerMode);
@@ -157,7 +153,9 @@ void PeakCamNode::getParams()
   declareParameter("ChunkModeActive", false, m_peakParams.ChunkModeActive);
   declareParameter("ChunkSelector", "Timestamp", m_peakParams.ChunkSelector);
   declareParameter("ChunkEnable", false, m_peakParams.ChunkEnable);
-
+#if 0
+  declareParameter("ChunksEnabled", "", m_peakParams.ChunksEnabled);
+#endif
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
   RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
@@ -172,8 +170,9 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  OffsetWidth: %i", m_peakParams.OffsetWidth);
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
-  RCLCPP_INFO(this->get_logger(), "  GainAuto: %s", m_peakParams.GainAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
+  RCLCPP_INFO(this->get_logger(), "  GainAuto: %s", m_peakParams.GainAuto.c_str());
+  RCLCPP_INFO(this->get_logger(), "  Gain: %f", m_peakParams.Gain);
   RCLCPP_INFO(this->get_logger(), "  PixelClock: %f MHz", m_peakParams.PixelClock);
   RCLCPP_INFO(this->get_logger(), "  PixelFormat: %s", m_peakParams.PixelFormat.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
@@ -187,6 +186,9 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  ChunkModeActive: %i", m_peakParams.ChunkModeActive);
   RCLCPP_INFO(this->get_logger(), "  ChunkSelector: %s", m_peakParams.ChunkSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %i", m_peakParams.ChunkEnable);
+#if 0
+  RCLCPP_INFO(this->get_logger(), "  ChunksEnabled: %s", m_peakParams.ChunksEnabled);
+#endif
 }
 
 template<typename T>
@@ -307,6 +309,23 @@ void PeakCamNode::openDevice()
   }
 }
 
+#if 0
+std::vector<std::string> split(const std::string& str, const std::string& delim)
+{
+    std::vector<std::string> result;
+    size_t start = 0;
+
+    for (size_t found = str.find(delim); found != std::string::npos; found = str.find(delim, start))
+    {
+        result.emplace_back(str.begin() + start, str.begin() + found);
+        start = found + delim.size();
+    }
+    if (start != str.size())
+        result.emplace_back(str.begin() + start, str.end());
+    return result;
+}
+#endif
+
 void PeakCamNode::setDeviceParameters()
 {
   int maxWidth, maxHeight = 0;
@@ -348,33 +367,31 @@ void PeakCamNode::setDeviceParameters()
     }
   }
 
-  //Set GainAuto Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainAuto")->SetCurrentEntry(m_peakParams.GainAuto);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainAuto is set to '" << m_peakParams.GainAuto << "'");
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainAuto is not a parameter for this camera");
-  }
-  
-  //Set GainSelector Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("GainSelector")->SetCurrentEntry(m_peakParams.GainSelector);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: GainSelector is set to '" << m_peakParams.GainSelector << "'");
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: GainSelector is not a parameter for this camera");
+  //Set GainSelector Parameter, must be done before GainAuto or Gain
+  if (setRemoteDeviceParameter<EnumerationNode>("GainSelector", m_peakParams.GainSelector)) {
+    setRemoteDeviceParameter<EnumerationNode>("GainAuto", m_peakParams.GainAuto);
+    if (m_peakParams.GainAuto.compare("Off") == 0) {
+      if (setRemoteDeviceParameter<FloatNode>("Gain", m_peakParams.Gain)) {
+        double gain = getRemoteDeviceParameter<FloatNode, double>("Gain");
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gain[" << m_peakParams.GainSelector << "] set to " << gain);
+      }
+    }
   }
   
   //Set Exposure related Parameter
   if(m_peakParams.ExposureAuto == "Off") {
     if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
-      if (setRemoteDeviceParameter<EnumerationNode>("ExposureMode", std::string("Timed"))) {
-        if (setRemoteDeviceParameter<FloatNode>("ExposureTime", m_peakParams.ExposureTime)) {
-          double v = getRemoteDeviceParameter<FloatNode, double>("ExposureTime");
-          RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << v << " us");
-        }
+    }
+    else {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto cannot be set in the camera.");
+    }
+    // Even if ExposureAuto is not a node/parameter, it may be possible to set the
+    // ExposureTime, eg. on old Ueye camera.
+    if (setRemoteDeviceParameter<EnumerationNode>("ExposureMode", std::string("Timed"))) {
+      if (setRemoteDeviceParameter<FloatNode>("ExposureTime", m_peakParams.ExposureTime)) {
+        double v = getRemoteDeviceParameter<FloatNode, double>("ExposureTime");
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureTime is set to " << v << " us");
       }
     }
   }
@@ -494,7 +511,17 @@ void PeakCamNode::setDeviceParameters()
   setPTPDeviceParameters();
 
   if (setRemoteDeviceParameter<BooleanNode>("ChunkModeActive", m_peakParams.ChunkModeActive)) {
-    if (m_peakParams.ChunkModeActive) {
+#if 0
+    if (m_peakParams.ChunkModeActive && ! m_peakParams.ChunksEnabled.empty()) {
+      for (std::string &chunk : split(m_peakParams.ChunksEnabled, ",")) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Enabling chunk " << chunk);
+        if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", chunk)) {
+          setRemoteDeviceParameter<BooleanNode>("ChunkEnable", true);
+        }
+      }
+    }
+#endif
+    if (m_peakParams.ChunkModeActive && ! m_peakParams.ChunkSelector.empty()) {
       if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", m_peakParams.ChunkSelector)) {
         setRemoteDeviceParameter<BooleanNode>("ChunkEnable", m_peakParams.ChunkEnable);
       }

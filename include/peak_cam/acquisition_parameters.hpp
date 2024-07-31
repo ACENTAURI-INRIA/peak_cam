@@ -58,6 +58,7 @@ struct Peak_Params
   std::string ExposureAuto{"Off"};
   std::string GainAuto{"Off"};
   std::string GainSelector;
+  double Gain{1.0};
   std::string PixelFormat{"RGB8"};
   std::string TriggerMode{"Off"};
   std::string TriggerSource{"Off"};
@@ -71,7 +72,9 @@ struct Peak_Params
   bool ChunkModeActive{true};
   std::string ChunkSelector{"Timestamp"};
   bool ChunkEnable{true};
-
+#if 0
+  std::string ChunksEnabled;
+#endif
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
