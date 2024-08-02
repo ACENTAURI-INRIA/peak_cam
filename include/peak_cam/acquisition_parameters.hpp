@@ -70,10 +70,12 @@ struct Peak_Params
   bool PtpEnable{true};
   bool PtpSlaveOnly{true};
   bool ChunkModeActive{true};
+#ifdef MULTICHUNKS
+  std::string EnabledChunks;
+  std::string DisabledChunks;
+#else
   std::string ChunkSelector{"Timestamp"};
   bool ChunkEnable{true};
-#if 0
-  std::string ChunksEnabled;
 #endif
 };
 }

@@ -93,4 +93,5 @@
 
     # A comma separated list of Chunks to enable in the camera. Can be used instead of ChunkSelector and ChunkEnable to
     # enable several chunks. Not yet implemented.
-    # ChunksEnabled: ""
+    # EnabledChunks: ""
+    # DisabledChunks: ""

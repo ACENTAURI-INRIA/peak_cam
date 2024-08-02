@@ -151,10 +151,12 @@ void PeakCamNode::getParams()
   declareParameter("PtpSlaveOnly", false, "If PTP is enabled force camera to act as a PTP slave only. Ignored otherwise", m_peakParams.PtpSlaveOnly);
 
   declareParameter("ChunkModeActive", false, m_peakParams.ChunkModeActive);
+#ifdef MULTICHUNKS
+  declareParameter("EnabledChunks", "", m_peakParams.EnabledChunks);
+  declareParameter("DisabledChunks", "", m_peakParams.DisabledChunks);
+#else
   declareParameter("ChunkSelector", "Timestamp", m_peakParams.ChunkSelector);
   declareParameter("ChunkEnable", false, m_peakParams.ChunkEnable);
-#if 0
-  declareParameter("ChunksEnabled", "", m_peakParams.ChunksEnabled);
 #endif
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
@@ -184,10 +186,12 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  PtpEnable: %i", m_peakParams.PtpEnable);
   RCLCPP_INFO(this->get_logger(), "  PtpSlaveOnly: %i", m_peakParams.PtpSlaveOnly);
   RCLCPP_INFO(this->get_logger(), "  ChunkModeActive: %i", m_peakParams.ChunkModeActive);
+#ifdef MULTICHUNKS
+  RCLCPP_INFO(this->get_logger(), "  EnabledChunks: %s", m_peakParams.EnabledChunks.c_str());
+  RCLCPP_INFO(this->get_logger(), "  DisabledChunks: %s", m_peakParams.DisabledChunks.c_str());
+#else
   RCLCPP_INFO(this->get_logger(), "  ChunkSelector: %s", m_peakParams.ChunkSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %i", m_peakParams.ChunkEnable);
-#if 0
-  RCLCPP_INFO(this->get_logger(), "  ChunksEnabled: %s", m_peakParams.ChunksEnabled);
 #endif
 }
 
@@ -309,7 +313,7 @@ void PeakCamNode::openDevice()
   }
 }
 
-#if 0
+#ifdef MULTICHUNKS
 std::vector<std::string> split(const std::string& str, const std::string& delim)
 {
     std::vector<std::string> result;
@@ -511,21 +515,30 @@ void PeakCamNode::setDeviceParameters()
   setPTPDeviceParameters();
 
   if (setRemoteDeviceParameter<BooleanNode>("ChunkModeActive", m_peakParams.ChunkModeActive)) {
-#if 0
-    if (m_peakParams.ChunkModeActive && ! m_peakParams.ChunksEnabled.empty()) {
-      for (std::string &chunk : split(m_peakParams.ChunksEnabled, ",")) {
+#ifdef MULTICHUNKS
+    if (m_peakParams.ChunkModeActive && ! m_peakParams.EnabledChunks.empty()) {
+      for (std::string &chunk : split(m_peakParams.EnabledChunks, ",")) {
         RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Enabling chunk " << chunk);
         if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", chunk)) {
           setRemoteDeviceParameter<BooleanNode>("ChunkEnable", true);
         }
       }
     }
-#endif
+    if (m_peakParams.ChunkModeActive && ! m_peakParams.DisabledChunks.empty()) {
+      for (std::string &chunk : split(m_peakParams.DisabledChunks, ",")) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Disabling chunk " << chunk);
+        if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", chunk)) {
+          setRemoteDeviceParameter<BooleanNode>("ChunkEnable", false);
+        }
+      }
+    }
+#else
     if (m_peakParams.ChunkModeActive && ! m_peakParams.ChunkSelector.empty()) {
       if (setRemoteDeviceParameter<EnumerationNode>("ChunkSelector", m_peakParams.ChunkSelector)) {
         setRemoteDeviceParameter<BooleanNode>("ChunkEnable", m_peakParams.ChunkEnable);
       }
     }
+#endif
   }
 }
 
@@ -598,7 +611,6 @@ void PeakCamNode::setPTPDeviceParameters()
       setRemoteDeviceParameter<BooleanNode>("PtpEnable", false);
     }
   }
-
 }
 
 template<class N, typename V>
