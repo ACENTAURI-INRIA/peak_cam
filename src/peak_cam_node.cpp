@@ -177,6 +177,11 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  BinningSelector: %s", m_peakParams.BinningSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  BinningVertical: %d", m_peakParams.BinningVertical);
   RCLCPP_INFO(this->get_logger(), "  BinningHorizontal: %d", m_peakParams.BinningHorizontal);
+  RCLCPP_INFO(this->get_logger(), "  DecimationSelector: %s", m_peakParams.DecimationSelector.c_str());
+  RCLCPP_INFO(this->get_logger(), "  DecimationVerticalMode : %s", m_peakParams.DecimationVerticalMode.c_str());
+  RCLCPP_INFO(this->get_logger(), "  DecimationVertical: %d", m_peakParams.DecimationVertical);
+  RCLCPP_INFO(this->get_logger(), "  DecimationHorizontalMode: %s", m_peakParams.DecimationHorizontalMode.c_str());
+  RCLCPP_INFO(this->get_logger(), "  DecimationHorizontal: %d", m_peakParams.DecimationHorizontal);
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
@@ -346,6 +351,13 @@ void PeakCamNode::setDeviceParameters()
     setRemoteDeviceParameter<IntegerNode>("BinningVertical", m_peakParams.BinningVertical);
     setRemoteDeviceParameter<IntegerNode>("BinningHorizontal", m_peakParams.BinningHorizontal);
   }
+
+  // Set Decimation related parameters
+  setRemoteDeviceParameter<EnumerationNode>("DecimationSelector", m_peakParams.DecimationSelector);
+  setRemoteDeviceParameter<EnumerationNode>("DecimationVerticalMode", m_peakParams.DecimationVerticalMode);
+  setRemoteDeviceParameter<IntegerNode>("DecimationVertical", m_peakParams.DecimationVertical);
+  setRemoteDeviceParameter<EnumerationNode>("DecimationHorizontalMode", m_peakParams.DecimationHorizontalMode);
+  setRemoteDeviceParameter<IntegerNode>("DecimationHorizontal", m_peakParams.DecimationHorizontal);
 
   maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxWidth '" << maxWidth << "'");

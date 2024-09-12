@@ -57,6 +57,11 @@ struct Peak_Params
   int BinningVertical{1};
   int BinningHorizontal{1};
   std::string BinningSelector{"uEye"};
+  std::string DecimationSelector{"uEye"};
+  std::string DecimationVerticalMode{"Discard"};
+  int DecimationVertical{1};
+  std::string DecimationHorizontalMode{"Discard"};
+  int DecimationHorizontal{1};
   double Gamma{1.2};
   std::string ExposureAuto{"Off"};
   std::string GainAuto{"Off"};

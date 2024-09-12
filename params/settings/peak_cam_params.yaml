@@ -24,6 +24,13 @@
     BinningVertical: 1
     BinningHorizontal: 1
 
+    # Decimation related parameters
+    DecimationSelector: "uEye"
+    DecimationVerticalMode : "Discard"
+    DecimationVertical: 1
+    DecimationHorizontalMode: "Discard"
+    DecimationHorizontal: 1
+
     # configure your desired image size
     # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
     ImageHeight: 1024
