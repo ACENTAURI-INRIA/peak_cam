@@ -110,6 +110,10 @@ void PeakCamNode::getParams()
   declareParameter("UseOffset", false, "If true, use parameters OffsetHeight and OffsetWidth to specify the image ROI", m_peakParams.UseOffset);
   declareParameter("OffsetHeight", 0, m_peakParams.OffsetHeight);
   declareParameter("OffsetWidth", 0, m_peakParams.OffsetWidth);
+
+  declareParameter("BinningSelector", "uEye", m_peakParams.BinningSelector);
+  declareParameter("BinningVertical", 1, m_peakParams.BinningVertical);
+  declareParameter("BinningHorizontal", 1, m_peakParams.BinningHorizontal);
   
   declareParameter("Gamma", 1.0, m_peakParams.Gamma);
 
@@ -170,6 +174,9 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  UseOffset: %i", m_peakParams.UseOffset);
   RCLCPP_INFO(this->get_logger(), "  OffsetHeight: %i", m_peakParams.OffsetHeight);
   RCLCPP_INFO(this->get_logger(), "  OffsetWidth: %i", m_peakParams.OffsetWidth);
+  RCLCPP_INFO(this->get_logger(), "  BinningSelector: %s", m_peakParams.BinningSelector.c_str());
+  RCLCPP_INFO(this->get_logger(), "  BinningVertical: %d", m_peakParams.BinningVertical);
+  RCLCPP_INFO(this->get_logger(), "  BinningHorizontal: %d", m_peakParams.BinningHorizontal);
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
@@ -333,11 +340,19 @@ std::vector<std::string> split(const std::string& str, const std::string& delim)
 void PeakCamNode::setDeviceParameters()
 {
   int maxWidth, maxHeight = 0;
+
+  // Set Binning related parameters before setting image size, as binning can limit the max image size.
+  if (setRemoteDeviceParameter<EnumerationNode>("BinningSelector", m_peakParams.BinningSelector)) {
+    setRemoteDeviceParameter<IntegerNode>("BinningVertical", m_peakParams.BinningVertical);
+    setRemoteDeviceParameter<IntegerNode>("BinningHorizontal", m_peakParams.BinningHorizontal);
+  }
+
   maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxWidth '" << maxWidth << "'");
   maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxHeight '" << maxHeight << "'");
   // Set Width, Height
+
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);

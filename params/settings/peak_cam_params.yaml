@@ -14,10 +14,26 @@
     # if you dont know it, run this node once and all serial nodes should be printed out
     selectedDevice: "0000000000"
 
+    # Binning related parameters. These parameters can change the max image size: set ImageWidth and
+    # ImageHeight accordingly. The BinningSelector parameter depends on the camera model, use ids_peak_cockpit
+    # to get the right one. For old uEye camera that use the 'uEye Translation Layer' of Peak, the usual
+    # value is "uEye".
+    BinningSelector: "uEye"
+    # The binning factor, possible values depend on the camera model. On some models (for example
+    # UI-124x/UI-324x/UI-524x) the horizontal and vertical values must be the same.
+    BinningVertical: 1
+    BinningHorizontal: 1
+
     # configure your desired image size
     # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
     ImageHeight: 1024
     ImageWidth: 1280
+
+    # If UseOffset is false, the acquired image will be automatically centered if it is smaller than the
+    # max image size. If UseOffset is true, the Offset(s) are used.
+    UseOffset: false
+    OffsetX: 0
+    OffsetY: 0
 
     # Pixel clock of the image sensor, in MHz
     PixelClock: 40.0

@@ -54,6 +54,9 @@ struct Peak_Params
   bool UseOffset{false};
   int OffsetWidth{0};
   int OffsetHeight{0};
+  int BinningVertical{1};
+  int BinningHorizontal{1};
+  std::string BinningSelector{"uEye"};
   double Gamma{1.2};
   std::string ExposureAuto{"Off"};
   std::string GainAuto{"Off"};
