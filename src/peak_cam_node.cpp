@@ -111,6 +111,12 @@ void PeakCamNode::getParams()
   declareParameter("OffsetHeight", 0, m_peakParams.OffsetHeight);
   declareParameter("OffsetWidth", 0, m_peakParams.OffsetWidth);
 
+  declareParameter("DecimationSelector", "uEye", m_peakParams.DecimationSelector);
+  declareParameter("DecimationVerticalMode", "Discard", m_peakParams.DecimationVerticalMode);
+  declareParameter("DecimationVertical", 1, m_peakParams.DecimationVertical);
+  declareParameter("DecimationHorizontalMode", "Discard", m_peakParams.DecimationHorizontalMode);
+  declareParameter("DecimationHorizontal", 1, m_peakParams.DecimationHorizontal);
+
   declareParameter("BinningSelector", "uEye", m_peakParams.BinningSelector);
   declareParameter("BinningVertical", 1, m_peakParams.BinningVertical);
   declareParameter("BinningHorizontal", 1, m_peakParams.BinningHorizontal);
@@ -271,7 +277,7 @@ void PeakCamNode::openDevice()
         }
         ++i;
       }
-   
+
       // get vector of device descriptors
       auto deviceDesrciptors = deviceManager.Devices();
       // open the selected device
@@ -279,9 +285,9 @@ void PeakCamNode::openDevice()
         deviceManager.Devices().at(selectedDevice)->OpenDevice(
           peak::core::DeviceAccessType::Control);
       RCLCPP_INFO_STREAM(
-        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " found");
+        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " found with TL " << m_device->TLType());
       // get the remote device node map
-      m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0); 
+      m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0);
       std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
       // sets Acquisition Parameters of the camera -> see yaml
       setDeviceParameters();
@@ -290,7 +296,7 @@ void PeakCamNode::openDevice()
       // get payload size
       auto payloadSize =
         m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
-      
+
       // get number of buffers to allocate the buffer count depends on your application
       // here the minimum required number for the data stream
       auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
@@ -364,7 +370,6 @@ void PeakCamNode::setDeviceParameters()
   maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxHeight '" << maxHeight << "'");
   // Set Width, Height
-
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
   RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
   m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);
@@ -678,6 +683,11 @@ bool PeakCamNode::setRemoteDeviceParameter(const std::string &node_name, const V
   }
   catch (const peak::core::OutOfRangeException &e) {
     RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: Out of range value for parameter " << node_name << ": " << value);
+    describeRemoteNodeRange(node);
+    return false;
+  }
+  catch (const peak::core::InvalidArgumentException &e) {
+    RCLCPP_ERROR_STREAM(this->get_logger(), "[PeakCamNode]: Invalid argument for parameter " << node_name << ": " << value);
     describeRemoteNodeRange(node);
     return false;
   }

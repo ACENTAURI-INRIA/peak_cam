@@ -7,19 +7,29 @@
     # if you dont know it, run this node once and all serial nodes should be printed out
     selectedDevice: "4104025892"
 
+    # UI3180 does not support binning, but can do decimation
+    DecimationSelector: "uEye"
+    DecimationVerticalMode : "Discard"
+    DecimationVertical: 2
+    DecimationHorizontalMode: "Discard"
+    DecimationHorizontal: 2
+
     # configure your desired image size
     # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
-    ImageHeight: 2048
-    ImageWidth: 2592
+    # Also take into account the decimation factors that reduce the max image size.
+    ImageHeight: 1024 # 2048
+    ImageWidth: 1296 # 2592
 
     PixelFormat: "RGB8"
     PixelClock: 120.0
 
+    # Enable or disable the AutoExposure feature. Values are "Once", "Continuous" or "Off". When "Off", the parameter
+    # ExposureTime is used to set the exposure time of the camera.
     ExposureAuto: "Off"
     # ExposureTime in μs
     # limits the Acquisition Framerate
     # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
-    ExposureTime: 8000
+    ExposureTime: 10000
 
     # AcquisitionFrameRate in Hz
     # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
