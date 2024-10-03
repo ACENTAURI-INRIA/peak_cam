@@ -15,17 +15,27 @@
     selectedDevice: "0000000000"
 
     # Binning related parameters. These parameters can change the max image size: set ImageWidth and
-    # ImageHeight accordingly. The BinningSelector parameter depends on the camera model, use ids_peak_cockpit
+    # ImageHeight accordingly.
+    # Set to true or false to enable/disable Binning. If true, set the other Binning parameters
+    # accordingly.
+    Binning: true
+    # The BinningSelector parameter depends on the camera model, use ids_peak_cockpit
     # to get the right one. For old uEye camera that use the 'uEye Translation Layer' of Peak, the usual
     # value is "uEye".
-    BinningSelector: "uEye"
+    BinningSelector: "Sensor"
     # The binning factor, possible values depend on the camera model. On some models (for example
     # UI-124x/UI-324x/UI-524x) the horizontal and vertical values must be the same.
     BinningVertical: 1
     BinningHorizontal: 1
 
-    # Decimation related parameters
-    DecimationSelector: "uEye"
+    # Decimation related parameters. These parameters can change the max image size: set ImageWidth and
+    # ImageHeight accordingly.
+    Decimation: true
+    # The DecimationSelector parameter can be something like "Sensor", "Region0", etc. On old UEye cameras using the
+    # UEye Translation Layer, it can be "uEye".
+    DecimationSelector: "Sensor"
+    # The decimation mode is not an existing parameter on all IDS models, the default value is "", which means
+    # that it is not set in the camera, unless it has a non-empty value.
     DecimationVerticalMode : "Discard"
     DecimationVertical: 1
     DecimationHorizontalMode: "Discard"
@@ -42,13 +52,25 @@
     OffsetX: 0
     OffsetY: 0
 
-    # Pixel clock of the image sensor, in MHz
+    # Pixel clock of the image sensor, in MHz. Set to 0.0 if the default or the current value of the camera is ok.
     PixelClock: 40.0
 
-    # Pixelformat
+    # Pixelformat: this is the pixel format of the image comming from the camera. With GEV cameras, depending on the image size, it
+    # is sometimes necessary to ask for BayerRG8 in order to cope with the Ethernet bandwidth.
     # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
-    # Possible: ["Mono8", "RGB8", "BGR8"] as string! 
+    # Possible: ["Mono8", "RGB8", "BGR8", "BayerRG8"] as string!
     PixelFormat: "RGB8"
+
+    # This is the pixel format of the ROS image published on the image topic. With RGB8, the default, the
+    # image can be shown with Rviz. For other formats, a converter from the image_proc ROS2 package can be
+    # used to get the color RGB image.
+    ImagePixelFormat: "RGB8"
+
+    # PixelConversionMode
+    # If the pixel conversion is done on the host, for example if PixelFormat is "BayerRG8", it is possible to choose the conversion
+    # mode. IDS provides 3 modes (see peak::ipl::ConversionMode class).
+    # Possible value: ["Fast", "Classic", "HighQuality"]
+    PixelConversionMode: "Fast"
 
     # AcquisitionFrameRate in Hz
     # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
@@ -82,7 +104,7 @@
     Gain: 1.0
 
     # Set to "On" to activate trigger based acquisition and use other Trigger related parameters to specify the triggering events,
-    # or "Off" for freerun acquisition using specified frame rate.
+    # or "Off" for freerun acquisition using specified frame rate : in this case, the other TriggerXXX parameters are ignored.
     # GenICam gives several choices for the event being triggered, named "TriggerSlector" such as "ExposureStart", "AcquisitionStart",
     # "AcquisitionEnd", etc. Currently peak_cam uses "ExposureStart".
     TriggerMode: "Off"

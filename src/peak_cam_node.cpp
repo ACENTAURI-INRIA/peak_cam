@@ -34,7 +34,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 #include "peak_cam/peak_cam_node.hpp"
-#include<iostream>
+#include <iostream>
 #include <cstdlib>
 #include <unistd.h>
 
@@ -52,9 +52,13 @@ PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
 {
   getParams();
 
-  m_pubImage = this->create_publisher<sensor_msgs::msg::Image>(std::string(this->get_name()) + "/" +  m_imageTopic, 1);
+  m_imageConverter = std::make_unique<peak::ipl::ImageConverter>();
+
+  auto publisher_options = rclcpp::PublisherOptions();
+  publisher_options.qos_overriding_options = rclcpp::QosOverridingOptions::with_default_policies();
+  m_pubImage = this->create_publisher<sensor_msgs::msg::Image>(std::string(this->get_name()) + "/" +  m_imageTopic, 1, publisher_options);
   m_pubCameraInfo =
-    this->create_publisher<sensor_msgs::msg::CameraInfo>(std::string(this->get_name()) + "/camera_info", 1);
+    this->create_publisher<sensor_msgs::msg::CameraInfo>(std::string(this->get_name()) + "/camera_info", 1, publisher_options);
   
   // Initialize header messages
   m_header.reset(new std_msgs::msg::Header());
@@ -104,33 +108,39 @@ void PeakCamNode::getParams()
   declareParameter("image_topic", "image_raw", "Name of published image topic", m_imageTopic)  ;
   declareParameter("camera_info_url", "defaultCameraInfoUrl", "URL of the camera_info data file, eg. calibration data", m_cameraInfoUrl);
   declareParameter("ExposureTime", 10000, "Exposure time, in  microseconds, of the image sensor", m_peakParams.ExposureTime);
-  declareParameter("AcquisitionFrameRate", 30, "Frame rate of the acquisition, in Hz", m_peakParams.AcquisitionFrameRate);
+  declareParameter("AcquisitionFrameRate", 10, "Frame rate of the acquisition, in Hz", m_peakParams.AcquisitionFrameRate);
   declareParameter("ImageHeight", 1080, "Image height, in pixels", m_peakParams.ImageHeight);
   declareParameter("ImageWidth", 1920, "Image width, in pixels", m_peakParams.ImageWidth);
-  declareParameter("UseOffset", false, "If true, use parameters OffsetHeight and OffsetWidth to specify the image ROI", m_peakParams.UseOffset);
-  declareParameter("OffsetHeight", 0, m_peakParams.OffsetHeight);
-  declareParameter("OffsetWidth", 0, m_peakParams.OffsetWidth);
+  declareParameter("UseOffset", false, "If true, use parameters OffsetY and OffsetX to specify the image ROI", m_peakParams.UseOffset);
+  declareParameter("OffsetY", 0, m_peakParams.OffsetY);
+  declareParameter("OffsetX", 0, m_peakParams.OffsetX);
 
-  declareParameter("DecimationSelector", "uEye", m_peakParams.DecimationSelector);
-  declareParameter("DecimationVerticalMode", "Discard", m_peakParams.DecimationVerticalMode);
+  declareParameter("Decimation", false, "set to true/false to enable or disable decimation", m_peakParams.Decimation);
+  declareParameter("DecimationSelector", "", m_peakParams.DecimationSelector);
+  declareParameter("DecimationVerticalMode", "", m_peakParams.DecimationVerticalMode);
   declareParameter("DecimationVertical", 1, m_peakParams.DecimationVertical);
-  declareParameter("DecimationHorizontalMode", "Discard", m_peakParams.DecimationHorizontalMode);
+  declareParameter("DecimationHorizontalMode", "", m_peakParams.DecimationHorizontalMode);
   declareParameter("DecimationHorizontal", 1, m_peakParams.DecimationHorizontal);
 
-  declareParameter("BinningSelector", "uEye", m_peakParams.BinningSelector);
+  declareParameter("Binning", false, "set to true/false to enable or disable Binning", m_peakParams.Binning);
+  declareParameter("BinningSelector", "", m_peakParams.BinningSelector);
   declareParameter("BinningVertical", 1, m_peakParams.BinningVertical);
   declareParameter("BinningHorizontal", 1, m_peakParams.BinningHorizontal);
-  
+
   declareParameter("Gamma", 1.0, m_peakParams.Gamma);
 
   declareParameter("selectedDevice", "0000000000", m_peakParams.selectedDevice);
 
   declareParameter("ExposureAuto", "Off", m_peakParams.ExposureAuto);
   declareParameter("PixelFormat", "Mono8", m_peakParams.PixelFormat);
+  declareParameter("ImagePixelFormat", "RGB8", m_peakParams.ImagePixelFormat);
+  declareParameter("PixelConversionMode", "Fast", m_peakParams.PixelConversionMode);
   
   declareParameter("GainSelector", "All", m_peakParams.GainSelector);
   declareParameter("GainAuto", "Off", m_peakParams.GainAuto);
   declareParameter("Gain", 1.0, m_peakParams.Gain);
+
+  declareParameter("BalanceWhiteAuto", "Off", m_peakParams.BalanceWhiteAuto);
 
   declareParameter("TriggerMode", "Off",
         "Set to \"On\" to activate trigger based acquisition and use other Trigger-related parameters to specify the triggering events, \"Off\" for freerun acquisition using specified frame rate.",
@@ -139,23 +149,17 @@ void PeakCamNode::getParams()
   declareParameter("TriggerActivation", "RisingEdge", "", m_peakParams.TriggerActivation);
   declareParameter("TriggerDivider", 1, "", m_peakParams.TriggerDivider);
 
-  declareParameter("PixelClock", 20.0, "Pixel clock of the image sensor, in MHz", m_peakParams.PixelClock);
+  declareParameter("PixelClock", 0.0, "Pixel clock of the image sensor, in MHz", m_peakParams.PixelClock);
 
-  try {
-    declare_parameter("DeviceLinkThroughputLimit", 1000000);
-    get_parameter("DeviceLinkThroughputLimit", m_peakParams.DeviceLinkThroughputLimit);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "DeviceLinkThroughputLimit provided was invalid");
-    throw ex;
-  }
+  declareParameter("DeviceLinkThroughputLimit", 0, "Limits the maximum bandwidth of the data that will be streamed out by the device. in Bps.", m_peakParams.DeviceLinkThroughputLimit);
 
-  try {
-    declare_parameter("Line1Source", "defaultSource");
-    get_parameter("Line1Source", m_peakParams.Line1Source);
-  } catch (rclcpp::ParameterTypeException & ex) {
-    RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
-    throw ex;
-  }
+  // try {
+  //   declare_parameter("Line1Source", "defaultSource");
+  //   get_parameter("Line1Source", m_peakParams.Line1Source);
+  // } catch (rclcpp::ParameterTypeException & ex) {
+  //   RCLCPP_ERROR(get_logger(), "Line1Source provided was invalid");
+  //   throw ex;
+  // }
 
   declareParameter("PtpEnable", false, "Enable/Disable PTP (IEEE1588) on the camera. Actually used only with camera that support this feature", m_peakParams.PtpEnable);
   declareParameter("PtpSlaveOnly", false, "If PTP is enabled force camera to act as a PTP slave only. Ignored otherwise", m_peakParams.PtpSlaveOnly);
@@ -173,33 +177,46 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
   RCLCPP_INFO(this->get_logger(), "  camera_info_url: %s", m_cameraInfoUrl.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureTime: %i", m_peakParams.ExposureTime);
-  RCLCPP_INFO(this->get_logger(), "  AcquisitionFrameRate: %i", m_peakParams.AcquisitionFrameRate);
+  RCLCPP_INFO(this->get_logger(), "  AcquisitionFrameRate: %i Hz", m_peakParams.AcquisitionFrameRate);
   RCLCPP_INFO(this->get_logger(), "  Gamma: %f", m_peakParams.Gamma);
   RCLCPP_INFO(this->get_logger(), "  ImageHeight: %i", m_peakParams.ImageHeight);
   RCLCPP_INFO(this->get_logger(), "  ImageWidth: %i", m_peakParams.ImageWidth);
   RCLCPP_INFO(this->get_logger(), "  UseOffset: %i", m_peakParams.UseOffset);
-  RCLCPP_INFO(this->get_logger(), "  OffsetHeight: %i", m_peakParams.OffsetHeight);
-  RCLCPP_INFO(this->get_logger(), "  OffsetWidth: %i", m_peakParams.OffsetWidth);
-  RCLCPP_INFO(this->get_logger(), "  BinningSelector: %s", m_peakParams.BinningSelector.c_str());
-  RCLCPP_INFO(this->get_logger(), "  BinningVertical: %d", m_peakParams.BinningVertical);
-  RCLCPP_INFO(this->get_logger(), "  BinningHorizontal: %d", m_peakParams.BinningHorizontal);
-  RCLCPP_INFO(this->get_logger(), "  DecimationSelector: %s", m_peakParams.DecimationSelector.c_str());
-  RCLCPP_INFO(this->get_logger(), "  DecimationVerticalMode : %s", m_peakParams.DecimationVerticalMode.c_str());
-  RCLCPP_INFO(this->get_logger(), "  DecimationVertical: %d", m_peakParams.DecimationVertical);
-  RCLCPP_INFO(this->get_logger(), "  DecimationHorizontalMode: %s", m_peakParams.DecimationHorizontalMode.c_str());
-  RCLCPP_INFO(this->get_logger(), "  DecimationHorizontal: %d", m_peakParams.DecimationHorizontal);
+  RCLCPP_INFO(this->get_logger(), "  OffsetY: %i", m_peakParams.OffsetY);
+  RCLCPP_INFO(this->get_logger(), "  OffsetX: %i", m_peakParams.OffsetX);
+  if (m_peakParams.Binning) {
+    RCLCPP_INFO(this->get_logger(), "  BinningSelector: %s", m_peakParams.BinningSelector.c_str());
+    RCLCPP_INFO(this->get_logger(), "  BinningVertical: %d", m_peakParams.BinningVertical);
+    RCLCPP_INFO(this->get_logger(), "  BinningHorizontal: %d", m_peakParams.BinningHorizontal);
+  }
+  else {
+    RCLCPP_INFO(this->get_logger(), "  Binning: disabled");
+  }
+  if (m_peakParams.Decimation) {
+    RCLCPP_INFO(this->get_logger(), "  DecimationSelector: %s", m_peakParams.DecimationSelector.c_str());
+    RCLCPP_INFO(this->get_logger(), "  DecimationVerticalMode : %s", m_peakParams.DecimationVerticalMode.c_str());
+    RCLCPP_INFO(this->get_logger(), "  DecimationVertical: %d", m_peakParams.DecimationVertical);
+    RCLCPP_INFO(this->get_logger(), "  DecimationHorizontalMode: %s", m_peakParams.DecimationHorizontalMode.c_str());
+    RCLCPP_INFO(this->get_logger(), "  DecimationHorizontal: %d", m_peakParams.DecimationHorizontal);
+  }
+  else {
+    RCLCPP_INFO(this->get_logger(), "  Decimation: disabled");
+  }
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainAuto: %s", m_peakParams.GainAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  Gain: %f", m_peakParams.Gain);
+  RCLCPP_INFO(this->get_logger(), "  BalanceWhiteAuto: %s", m_peakParams.BalanceWhiteAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  PixelClock: %f MHz", m_peakParams.PixelClock);
   RCLCPP_INFO(this->get_logger(), "  PixelFormat: %s", m_peakParams.PixelFormat.c_str());
+  RCLCPP_INFO(this->get_logger(), "  ImagePixelFormat: %s", m_peakParams.ImagePixelFormat.c_str());
+  RCLCPP_INFO(this->get_logger(), "  PixelConversionMode: %s", m_peakParams.PixelConversionMode.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerMode: %s", m_peakParams.TriggerMode.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerSource: %s", m_peakParams.TriggerSource.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerActivation: %s", m_peakParams.TriggerActivation.c_str());
-  RCLCPP_INFO(this->get_logger(), "  DeviceLinkThroughputLimit: %i", m_peakParams.DeviceLinkThroughputLimit);
-  RCLCPP_INFO(this->get_logger(), "  Line1Source: %s", m_peakParams.Line1Source.c_str());
+  RCLCPP_INFO(this->get_logger(), "  DeviceLinkThroughputLimit: %i MBps", m_peakParams.DeviceLinkThroughputLimit / 1000000);
+  // RCLCPP_INFO(this->get_logger(), "  Line1Source: %s", m_peakParams.Line1Source.c_str());
   RCLCPP_INFO(this->get_logger(), "  TriggerDivider: %i", m_peakParams.TriggerDivider);
   RCLCPP_INFO(this->get_logger(), "  PtpEnable: %i", m_peakParams.PtpEnable);
   RCLCPP_INFO(this->get_logger(), "  PtpSlaveOnly: %i", m_peakParams.PtpSlaveOnly);
@@ -240,7 +257,7 @@ void PeakCamNode::openDevice()
 {
   auto& deviceManager = peak::DeviceManager::Instance();  
   //Select Device and set Parameters Once
-  while (!m_acquisitionLoopRunning)
+  while (!m_acquisitionLoopRunning && rclcpp::ok())
   {
     try
     {
@@ -267,66 +284,72 @@ void PeakCamNode::openDevice()
         
       // set i back to 0
       i = 0;
-      size_t selectedDevice = 0;
+      int selectedDevice = -1;
       for (const auto& deviceDescriptor : deviceManager.Devices())
       {
         if (m_peakParams.selectedDevice == deviceDescriptor->SerialNumber())
         {
           RCLCPP_INFO_ONCE(this->get_logger(), "SELECTING NEW DEVICE: %lu", i);
           selectedDevice = i;
+          break;
         }
         ++i;
       }
 
-      // get vector of device descriptors
-      auto deviceDesrciptors = deviceManager.Devices();
-      // open the selected device
-      m_device =
-        deviceManager.Devices().at(selectedDevice)->OpenDevice(
-          peak::core::DeviceAccessType::Control);
-      RCLCPP_INFO_STREAM(
-        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " found with TL " << m_device->TLType());
-      // get the remote device node map
-      m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0);
-      std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
-      // sets Acquisition Parameters of the camera -> see yaml
-      setDeviceParameters();
-      // open the first data stream
-      m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
-      // get payload size
-      auto payloadSize =
-        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
+      if (selectedDevice >= 0) {
+        // get vector of device descriptors
+        auto deviceDescriptors = deviceManager.Devices();
+        // open the selected device
+        m_device =
+          deviceManager.Devices().at(selectedDevice)->OpenDevice(
+            peak::core::DeviceAccessType::Control);
+        RCLCPP_INFO_STREAM(
+          this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " found with TL " << m_device->TLType());
+        // get the remote device node map
+        m_nodeMapRemoteDevice = m_device->RemoteDevice()->NodeMaps().at(0);
+        std::vector<std::shared_ptr<peak::core::nodes::Node>> nodes = m_nodeMapRemoteDevice->Nodes();
+        // sets Acquisition Parameters of the camera -> see yaml
+        setDeviceParameters();
+        // open the first data stream
+        m_dataStream = m_device->DataStreams().at(0)->OpenDataStream(); 
+        // get payload size
+        auto payloadSize =
+          m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("PayloadSize")->Value();
 
-      // get number of buffers to allocate the buffer count depends on your application
-      // here the minimum required number for the data stream
-      auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
-      
-      // allocate and announce image buffers and queue them
-      for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount)
-      {
-          auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
-          m_dataStream->QueueBuffer(buffer);
+        // get number of buffers to allocate the buffer count depends on your application
+        // here the minimum required number for the data stream
+        auto bufferCountMax = m_dataStream->NumBuffersAnnouncedMinRequired();
+
+        // allocate and announce image buffers and queue them
+        for (uint64_t bufferCount = 0; bufferCount < bufferCountMax; ++bufferCount)
+        {
+            auto buffer = m_dataStream->AllocAndAnnounceBuffer(static_cast<size_t>(payloadSize), nullptr);
+            m_dataStream->QueueBuffer(buffer);
+        }
+        // Lock critical features to prevent them from changing during acqusition
+        // m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked")->SetValue(1);
+
+        // start the data stream
+        m_dataStream->StartAcquisition();
+        // start the device
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
+          "AcquisitionStart")->Execute();
+        m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
+          "AcquisitionStart")->WaitUntilDone();
+        RCLCPP_INFO_STREAM(
+          this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " connected");
+        m_acquisitionLoopRunning = true;
       }
-      // Lock critical features to prevent them from changing during acqusition
-      // m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("TLParamsLocked")->SetValue(1);
-
-      // start the data stream
-      m_dataStream->StartAcquisition();
-      // start the device
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
-        "AcquisitionStart")->Execute();
-      m_nodeMapRemoteDevice->FindNode<peak::core::nodes::CommandNode>(
-        "AcquisitionStart")->WaitUntilDone();
-      RCLCPP_INFO_STREAM(
-        this->get_logger(), "[PeakCamNode]: " << m_device->ModelName() << " connected");
-      m_acquisitionLoopRunning = true;
+      else {
+        usleep(1000000);
+      }
     } catch (const std::exception& e) {
       RCLCPP_ERROR_STREAM_ONCE(
         this->get_logger(), "[PeakCamNode]: EXCEPTION: " << e.what());
       RCLCPP_ERROR_STREAM_ONCE(
         this->get_logger(),
-        "[PeakCamNode]: Device at port " << m_peakParams.selectedDevice <<
-        " not connected or must run as root!");
+        "[PeakCamNode]: Device with serial " << m_peakParams.selectedDevice <<
+        " not connected or access problem (run as root ?)");
     }
   }
 }
@@ -352,32 +375,48 @@ void PeakCamNode::setDeviceParameters()
 {
   int maxWidth, maxHeight = 0;
 
-  // Set Binning related parameters before setting image size, as binning can limit the max image size.
-  if (setRemoteDeviceParameter<EnumerationNode>("BinningSelector", m_peakParams.BinningSelector)) {
-    setRemoteDeviceParameter<IntegerNode>("BinningVertical", m_peakParams.BinningVertical);
-    setRemoteDeviceParameter<IntegerNode>("BinningHorizontal", m_peakParams.BinningHorizontal);
+  //Set PixelFormat Parameter
+  std::string componentSelector = "Intensity";
+  if (setRemoteDeviceParameter<EnumerationNode>("ComponentSelector", componentSelector)) {
+    if (setRemoteDeviceParameter<EnumerationNode>("PixelFormat", m_peakParams.PixelFormat)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
+    }
   }
 
-  // Set Decimation related parameters
-  setRemoteDeviceParameter<EnumerationNode>("DecimationSelector", m_peakParams.DecimationSelector);
-  setRemoteDeviceParameter<EnumerationNode>("DecimationVerticalMode", m_peakParams.DecimationVerticalMode);
-  setRemoteDeviceParameter<IntegerNode>("DecimationVertical", m_peakParams.DecimationVertical);
-  setRemoteDeviceParameter<EnumerationNode>("DecimationHorizontalMode", m_peakParams.DecimationHorizontalMode);
-  setRemoteDeviceParameter<IntegerNode>("DecimationHorizontal", m_peakParams.DecimationHorizontal);
-
-  maxWidth = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("WidthMax")->Value();
+  // Set Binning related parameters before setting image size, as binning can limit the max image size.
+  if (m_peakParams.Binning) {
+    if (m_peakParams.BinningSelector.empty() || setRemoteDeviceParameter<EnumerationNode>("BinningSelector", m_peakParams.BinningSelector)) {
+      setRemoteDeviceParameter<IntegerNode>("BinningVertical", m_peakParams.BinningVertical);
+      setRemoteDeviceParameter<IntegerNode>("BinningHorizontal", m_peakParams.BinningHorizontal);
+    }
+  }
+  if (m_peakParams.Decimation) {
+    // Set Decimation related parameters
+    setRemoteDeviceParameter<EnumerationNode>("DecimationSelector", m_peakParams.DecimationSelector);
+    if (! m_peakParams.DecimationVerticalMode.empty()) {
+      setRemoteDeviceParameter<EnumerationNode>("DecimationVerticalMode", m_peakParams.DecimationVerticalMode);
+    }
+    setRemoteDeviceParameter<IntegerNode>("DecimationVertical", m_peakParams.DecimationVertical);
+    if (! m_peakParams.DecimationHorizontalMode.empty()) {
+      setRemoteDeviceParameter<EnumerationNode>("DecimationHorizontalMode", m_peakParams.DecimationHorizontalMode);
+    }
+    setRemoteDeviceParameter<IntegerNode>("DecimationHorizontal", m_peakParams.DecimationHorizontal);
+  }
+  maxWidth = getRemoteDeviceParameter<IntegerNode, int>("WidthMax");
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxWidth '" << maxWidth << "'");
-  maxHeight = m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("HeightMax")->Value();
+  maxHeight = getRemoteDeviceParameter<IntegerNode, int>("HeightMax");
   // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxHeight '" << maxHeight << "'");
   // Set Width, Height
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Width")->SetValue(m_peakParams.ImageWidth);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
-  m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("Height")->SetValue(m_peakParams.ImageHeight);
-  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
+  if (setRemoteDeviceParameter<IntegerNode>("Width", m_peakParams.ImageWidth)) {
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
+  }
+  if (setRemoteDeviceParameter<IntegerNode>("Height", m_peakParams.ImageHeight)) {
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
+  }
   
   if (m_peakParams.UseOffset) {
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(m_peakParams.OffsetWidth);
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(m_peakParams.OffsetHeight);
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(m_peakParams.OffsetX);
+    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(m_peakParams.OffsetY);
   } else {
     // auto-center if UseOffset is set to False
     m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - m_peakParams.ImageWidth) / 2);
@@ -385,21 +424,41 @@ void PeakCamNode::setDeviceParameters()
   }
 
   //Set DeviceLinkThroughputLimit Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("DeviceLinkThroughputLimit")->SetValue(m_peakParams.DeviceLinkThroughputLimit);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "'");
-  }catch(const std::exception&)
-  {
+  if (m_peakParams.DeviceLinkThroughputLimit > 0) {
+    // Enforce the limit, use the LimitMode if it exists to activate the limit. If the node
+    // does not exists, ignore and continue.
+    const std::string limitMode = "On";
+    setRemoteDeviceParameter<EnumerationNode>("DeviceLinkThroughputLimitMode", limitMode);
+    if (setRemoteDeviceParameter<IntegerNode>("DeviceLinkThroughputLimit", m_peakParams.DeviceLinkThroughputLimit)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: DeviceLinkThroughputLimit is set to '" << m_peakParams.DeviceLinkThroughputLimit << "' Bps");
+    }
   }
-  //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter
+  // Both the pixel format, the image size and the ThroughputLimit can put a bound on the
+  // possible framerate.
+  double frameRateLimit = getRemoteDeviceParameter<FloatNode, double>("DeviceLinkAcquisitionFrameRateLimit");
+  double framerateMax = getRemoteDeviceParameterMaximum<FloatNode, double>(std::string("AcquisitionFrameRate"));
+  if (frameRateLimit > framerateMax) {
+    frameRateLimit = framerateMax;
+  }
+  if (m_peakParams.TriggerMode == "Off" && m_peakParams.AcquisitionFrameRate > frameRateLimit) {
+    RCLCPP_WARN(get_logger(), "[PeakCamNode]: Framerate limit is %f Hz, requested framerate (%d Hz) is not possible.", frameRateLimit, m_peakParams.AcquisitionFrameRate);
+  }
+
+  //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter, only if this value is different that 0, the default value
   if (getRemoteDeviceParameter<EnumerationNode, std::string>("DeviceClockSelector").compare("Sensor") == 0
       || setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", std::string("Sensor"))) {
-    if (setRemoteDeviceParameter<FloatNode>("DeviceClockFrequency", m_peakParams.PixelClock * 1000 * 1000)) {
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelClock is set to " << m_peakParams.PixelClock << " MHz");
+    if (m_peakParams.PixelClock > 0.0) {
+      if (setRemoteDeviceParameter<FloatNode>("DeviceClockFrequency", m_peakParams.PixelClock * 1000 * 1000)) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelClock is set to " << m_peakParams.PixelClock << " MHz");
+      }
+      else {
+        double f = getRemoteDeviceParameter<FloatNode, double>("DeviceClockFrequency");
+        RCLCPP_WARN_STREAM(get_logger(), "[PeakCamNode]: Failed to set PixelClock, current value is " << f/(1000*1000) << " MHz");
+      }
     }
     else {
       double f = getRemoteDeviceParameter<FloatNode, double>("DeviceClockFrequency");
-      RCLCPP_INFO_STREAM(get_logger(), "[PeakCamNode]: Failed to set PixelClock, current value is " << f/(1000*1000) << " MHz");
+      RCLCPP_INFO_STREAM(get_logger(), "[PeakCamNode]: Current PixelClock value is " << f/(1000*1000) << " MHz");
     }
   }
 
@@ -413,7 +472,11 @@ void PeakCamNode::setDeviceParameters()
       }
     }
   }
-  
+
+  if (setRemoteDeviceParameter<EnumerationNode>("BalanceWhiteAuto", m_peakParams.BalanceWhiteAuto)) {
+    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: BalanceWhiteAuto set to '" << m_peakParams.BalanceWhiteAuto << "'");
+  }
+
   //Set Exposure related Parameter
   if(m_peakParams.ExposureAuto == "Off") {
     if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
@@ -441,22 +504,12 @@ void PeakCamNode::setDeviceParameters()
     double v = getRemoteDeviceParameter<FloatNode, double>("Gamma");
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Gamma is set to " << v);
   }
-  
-  //Set PixelFormat Parameter
-  try{
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::EnumerationNode>("PixelFormat")->SetCurrentEntry(m_peakParams.PixelFormat);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: PixelFormat is set to '" << m_peakParams.PixelFormat << "'");
-  }catch(const std::exception&)
-  {
-    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: PixelFormat is not a parameter for this camera");
-  }
-  
 
   // Set TriggerMode
   if (m_peakParams.TriggerMode == "On") {
     // TODO(flynneva): add more parameters for customizing trigger
     // trigger acqusition, delayed trigger, etc.
-    setRemoteDeviceParameter<EnumerationNode>("Line1Source", m_peakParams.Line1Source);
+    // setRemoteDeviceParameter<EnumerationNode>("Line1Source", m_peakParams.Line1Source);
 
     // Apply all trigger related parameters to the "ExposureStart" trigger
     std::string selected_trigger = "ExposureStart";
@@ -517,6 +570,9 @@ void PeakCamNode::setDeviceParameters()
     std::string selected_trigger = "ExposureStart";
     if (setRemoteDeviceParameter<EnumerationNode>("TriggerSelector", selected_trigger)) {
       if (setRemoteDeviceParameter<EnumerationNode>("TriggerMode", std::string("Off"))) {
+        if (remoteDeviceParameterExists<BooleanNode>("AcquisitionFrameRateEnable")) {
+          setRemoteDeviceParameter<BooleanNode>("AcquisitionFrameRateEnable", true);
+        }
         if (setRemoteDeviceParameter<FloatNode>("AcquisitionFrameRate", m_peakParams.AcquisitionFrameRate)) {
           double v = getRemoteDeviceParameter<FloatNode, double>("AcquisitionFrameRate");
           RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: AcquisitionFrameRate is set to " << v << " Hz");
@@ -526,23 +582,77 @@ void PeakCamNode::setDeviceParameters()
   }
 
   // Set Parameters for ROS Image
-  try{
-    if (m_peakParams.PixelFormat == "Mono8") {
-      m_pixelFormat = peak::ipl::PixelFormatName::Mono8;
-      m_image_encoding = sensor_msgs::image_encodings::MONO8;
-      m_bytesPerPixel = 1;
-    } else if (m_peakParams.PixelFormat == "RGB8") {
-      m_pixelFormat = peak::ipl::PixelFormatName::RGB8;
-      m_image_encoding = sensor_msgs::image_encodings::RGB8;
-      m_bytesPerPixel = 1;
-    } else if (m_peakParams.PixelFormat == "BGR8") {
-      m_pixelFormat = peak::ipl::PixelFormatName::BGR8;
-      m_image_encoding = sensor_msgs::image_encodings::BGR8;
-      m_bytesPerPixel = 1;
+  auto toIPLPixelFormat = [](const std::string &fmt) {
+    if (fmt == "Mono8") {
+      return peak::ipl::PixelFormatName::Mono8;
     }
-  }catch(const std::exception&)
-  {
+    else if (fmt == "RGB8") {
+      return peak::ipl::PixelFormatName::RGB8;
+    }
+    else if (fmt == "BGR8") {
+      return peak::ipl::PixelFormatName::BGR8;
+    }
+    else if (fmt == "BayerRG8") {
+      return peak::ipl::PixelFormatName::BayerRG8;
+    }
+    else if (fmt == "BayerBG8") {
+      return peak::ipl::PixelFormatName::BayerBG8;
+    }
+    else if (fmt == "BayerGB8") {
+      return peak::ipl::PixelFormatName::BayerGB8;
+    }
+    else if (fmt == "BayerGR8") {
+      return peak::ipl::PixelFormatName::BayerGR8;
+    }
+    return peak::ipl::PixelFormatName::Invalid;
+  };
+
+  auto toImageEncoding = [](peak::ipl::PixelFormatName fmt) {
+    switch (fmt) {
+      case peak::ipl::PixelFormatName::Mono8 :
+        return sensor_msgs::image_encodings::MONO8;
+      case peak::ipl::PixelFormatName::RGB8 :
+        return sensor_msgs::image_encodings::RGB8 ;
+      case peak::ipl::PixelFormatName::BGR8 :
+        return sensor_msgs::image_encodings::BGR8 ;
+      case peak::ipl::PixelFormatName::BayerRG8 :
+        return sensor_msgs::image_encodings::BAYER_RGGB8 ;
+      case peak::ipl::PixelFormatName::BayerGR8 :
+        return sensor_msgs::image_encodings::BAYER_GRBG8 ;
+      case peak::ipl::PixelFormatName::BayerBG8 :
+        return sensor_msgs::image_encodings::BAYER_BGGR8 ;
+      case peak::ipl::PixelFormatName::BayerGB8 :
+        return sensor_msgs::image_encodings::BAYER_GBRG8 ;
+      default:
+        return sensor_msgs::image_encodings::MONO8;
+    }
+  };
+
+  // m_inputPixelFormat is the pixel format (IPL) of the image coming from the camera
+  // m_pixelFormat is the pixel format (IPL) of the image to publish on ROS
+  // m_image_encoding is the same as m_pixelFormat but from sensor_msgs::image_encodings.
+  m_inputPixelFormat = toIPLPixelFormat(m_peakParams.PixelFormat);
+  m_pixelFormat = toIPLPixelFormat(m_peakParams.ImagePixelFormat);
+  m_bytesPerPixel = peak::ipl::PixelFormat(m_pixelFormat).NumStorageBitsPerPixel() / 8;
+  m_image_encoding = toImageEncoding(m_pixelFormat);
+
+  m_imageConverter->PreAllocateConversion(m_inputPixelFormat, m_pixelFormat, m_peakParams.ImageWidth, m_peakParams.ImageHeight, 1);
+  if (m_peakParams.PixelConversionMode == "Fast") {
+    conversionMode = peak::ipl::ConversionMode::Fast;
   }
+  else if (m_peakParams.PixelConversionMode == "Classic") {
+    conversionMode = peak::ipl::ConversionMode::Classic;
+  }
+  else if (m_peakParams.PixelConversionMode == "HighQuality") {
+    conversionMode = peak::ipl::ConversionMode::HighQuality;
+  }
+  else {
+    conversionMode = peak::ipl::ConversionMode::Fast;
+  }
+  m_imageConverter->SetConversionMode(conversionMode);
+
+  m_cvImage = cv::Mat::zeros(m_peakParams.ImageHeight, m_peakParams.ImageWidth, CV_MAKETYPE(CV_8U, m_bytesPerPixel));
+
   // Process PTP related parameters.
   setPTPDeviceParameters();
 
@@ -718,42 +828,41 @@ void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<IntegerNode> node)
 
 void PeakCamNode::acquisitionLoop()
 {
-  while (m_acquisitionLoopRunning) {
+  while (m_acquisitionLoopRunning && rclcpp::ok()) {
     try {
       m_header->stamp = this->now();
       RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: Acquisition started");
       // get buffer from data stream and process it
       auto buffer = m_dataStream->WaitForFinishedBuffer(5000);
+      if (! rclcpp::ok()) {
+        break;
+      }
 
       if (buffer->HasChunks())
       {
         // update nodemap with current chunk data
         m_nodeMapRemoteDevice->UpdateChunkNodes(buffer);
-        m_header->stamp = rclcpp::Time(m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
-        RCLCPP_INFO_STREAM_ONCE(this->get_logger(),"time2 reçu cam : "<< m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("ChunkTimestamp")->Value());
+        if (remoteDeviceParameterExists<IntegerNode>("ChunkTimestamp")) {
+          m_header->stamp = rclcpp::Time(getRemoteDeviceParameter<IntegerNode, int64_t>("ChunkTimestamp"));
+        }
       }
       auto ci = m_cameraInfoManager->getCameraInfo();
       m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
       m_cameraInfo->header = *m_header;
 
-      const auto imageBufferSize __attribute__((unused)) = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
+      const size_t imageBufferSize __attribute__((unused)) = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
-      auto image = peak::BufferTo<peak::ipl::Image>(buffer).ConvertTo(m_pixelFormat);
-      cv::Mat cvImage;
-      if (m_peakParams.PixelFormat == "Mono8")
-        cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC1);
-      else
-        cvImage = cv::Mat::zeros(image.Height(), image.Width(), CV_8UC3);
-      int sizeBuffer = static_cast<int>(image.ByteCount());
-      // Device buffer is being copied into cv_bridge format
-      std::memcpy(cvImage.data, image.Data(), static_cast<size_t>(sizeBuffer));
+      peak::ipl::Image image = peak::BufferTo<peak::ipl::Image>(buffer);
+      size_t sizeBuffer __attribute__((unused)) = image.ByteCount();
+      m_imageConverter->Convert(image, m_pixelFormat, m_cvImage.data, imageBufferSize);
+
       // cv_bridge Image is converted to sensor_msgs/Image to publish on ROS Topic
       RCLCPP_INFO_ONCE(this->get_logger(), "[PeakCamNode]: cv bridge image");
-      m_cvImage.reset(new cv_bridge::CvImage());
-      m_cvImage->header = *m_header;
-      m_cvImage->encoding = m_image_encoding;
-      m_cvImage->image = cvImage;
-      m_pubImage->publish(*m_cvImage->toImageMsg());
+      m_cvImagePtr.reset(new cv_bridge::CvImage(*m_header, m_image_encoding, m_cvImage));
+      // m_cvImage->header = *m_header;
+      // m_cvImage->encoding = m_image_encoding;
+      // m_cvImage->image = cvImage;
+      m_pubImage->publish(*m_cvImagePtr->toImageMsg());
       m_pubCameraInfo->publish(*m_cameraInfo);
       RCLCPP_INFO_STREAM_ONCE(this->get_logger(), "[PeakCamNode]: Publishing data");
       // queue buffer
