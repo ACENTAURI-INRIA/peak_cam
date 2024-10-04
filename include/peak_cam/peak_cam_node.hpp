@@ -226,10 +226,25 @@ private:
     }
   }
 
+  template<class N, typename V>
+    V getRemoteDeviceParameterIncrement(const std::string &node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeIncrement<N, V>(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
+  }
+
   template <class N, typename V>
     V getRemoteNodeMaximum(std::shared_ptr<N> node) { return node->Maximum(); }
   template <class N, typename V>
     V getRemoteNodeMinimum(std::shared_ptr<N> node) { return node->Minimum(); }
+  template <class N, typename V>
+    V getRemoteNodeIncrement(std::shared_ptr<N> node) { return node->Increment(); }
 
   void describeRemoteNodeRange(std::shared_ptr<EnumerationNode> node);
   void describeRemoteNodeRange(std::shared_ptr<FloatNode> node);

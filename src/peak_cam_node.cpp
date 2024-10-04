@@ -403,24 +403,54 @@ void PeakCamNode::setDeviceParameters()
     setRemoteDeviceParameter<IntegerNode>("DecimationHorizontal", m_peakParams.DecimationHorizontal);
   }
   maxWidth = getRemoteDeviceParameter<IntegerNode, int>("WidthMax");
-  // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxWidth '" << maxWidth << "'");
   maxHeight = getRemoteDeviceParameter<IntegerNode, int>("HeightMax");
-  // RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: maxHeight '" << maxHeight << "'");
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Image maxWidth is " << maxWidth);
+  RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: Image maxHeight is " << maxHeight);
+
+  // Set a ROI using OffsetX and OffsetY. First set a minimal ROI to remove any limitation.
+  int x_min = getRemoteDeviceParameterMinimum<IntegerNode, int>("OffsetX");
+  int y_min = getRemoteDeviceParameterMinimum<IntegerNode, int>("OffsetY");
+  int w_min = getRemoteDeviceParameterMinimum<IntegerNode, int>("Width");
+  int h_min = getRemoteDeviceParameterMinimum<IntegerNode, int>("Height");
+  setRemoteDeviceParameter<IntegerNode>("OffsetX", x_min);
+  setRemoteDeviceParameter<IntegerNode>("OffsetY", y_min);
+  setRemoteDeviceParameter<IntegerNode>("Width", w_min);
+  setRemoteDeviceParameter<IntegerNode>("Height", h_min);
+  // Now set the ROI with the requested parameters.
+  if (m_peakParams.UseOffset) {
+    if (setRemoteDeviceParameter<IntegerNode>("OffsetX", m_peakParams.OffsetX)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: OffsetX is set to " << m_peakParams.OffsetX);
+    }
+    if (setRemoteDeviceParameter<IntegerNode>("OffsetY", m_peakParams.OffsetY)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: OffsetY is set to " << m_peakParams.OffsetY);
+    }
+  }
+  else {
+    // auto-center if UseOffset is set to False
+    int offset_x = (maxWidth - m_peakParams.ImageWidth) / 2;
+    int offset_y = (maxHeight - m_peakParams.ImageHeight) / 2;
+    int increment_x = getRemoteDeviceParameterIncrement<IntegerNode, int>("OffsetX");
+    int increment_y = getRemoteDeviceParameterIncrement<IntegerNode, int>("OffsetY");
+    // Round to the nearest multiple of the increment.
+    if (offset_x > 0 && increment_x > 0) {
+      offset_x = ((offset_x + increment_x / 2) / increment_x) * increment_x;
+    }
+    if (offset_y > 0 && increment_y > 0) {
+      offset_y = ((offset_y + increment_y / 2) / increment_y) * increment_y;
+    }
+    if (setRemoteDeviceParameter<IntegerNode>("OffsetX", offset_x)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: OffsetX is set to " << offset_x);
+    }
+    if (setRemoteDeviceParameter<IntegerNode>("OffsetY", offset_y)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: OffsetY is set to " << offset_y);
+    }
+  }
   // Set Width, Height
   if (setRemoteDeviceParameter<IntegerNode>("Width", m_peakParams.ImageWidth)) {
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageWidth is set to '" << m_peakParams.ImageWidth << "'");
   }
   if (setRemoteDeviceParameter<IntegerNode>("Height", m_peakParams.ImageHeight)) {
     RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ImageHeight is set to '" << m_peakParams.ImageHeight << "'");
-  }
-  
-  if (m_peakParams.UseOffset) {
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue(m_peakParams.OffsetX);
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue(m_peakParams.OffsetY);
-  } else {
-    // auto-center if UseOffset is set to False
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetX")->SetValue((maxWidth - m_peakParams.ImageWidth) / 2);
-    m_nodeMapRemoteDevice->FindNode<peak::core::nodes::IntegerNode>("OffsetY")->SetValue((maxHeight - m_peakParams.ImageHeight) / 2);
   }
 
   //Set DeviceLinkThroughputLimit Parameter
@@ -435,15 +465,16 @@ void PeakCamNode::setDeviceParameters()
   }
   // Both the pixel format, the image size and the ThroughputLimit can put a bound on the
   // possible framerate.
-  double frameRateLimit = getRemoteDeviceParameter<FloatNode, double>("DeviceLinkAcquisitionFrameRateLimit");
-  double framerateMax = getRemoteDeviceParameterMaximum<FloatNode, double>(std::string("AcquisitionFrameRate"));
-  if (frameRateLimit > framerateMax) {
-    frameRateLimit = framerateMax;
+  if (remoteDeviceParameterExists<FloatNode>("DeviceLinkAcquisitionFrameRateLimit")) {
+    double frameRateLimit = getRemoteDeviceParameter<FloatNode, double>("DeviceLinkAcquisitionFrameRateLimit");
+    double framerateMax = getRemoteDeviceParameterMaximum<FloatNode, double>(std::string("AcquisitionFrameRate"));
+    if (frameRateLimit > framerateMax) {
+      frameRateLimit = framerateMax;
+    }
+    if (m_peakParams.TriggerMode == "Off" && m_peakParams.AcquisitionFrameRate > frameRateLimit) {
+      RCLCPP_WARN(get_logger(), "[PeakCamNode]: Framerate limit is %f Hz, requested framerate (%d Hz) is not possible.", frameRateLimit, m_peakParams.AcquisitionFrameRate);
+    }
   }
-  if (m_peakParams.TriggerMode == "Off" && m_peakParams.AcquisitionFrameRate > frameRateLimit) {
-    RCLCPP_WARN(get_logger(), "[PeakCamNode]: Framerate limit is %f Hz, requested framerate (%d Hz) is not possible.", frameRateLimit, m_peakParams.AcquisitionFrameRate);
-  }
-
   //Set PixelClock (=DeviceClockFrequency[Sensor]) Parameter, only if this value is different that 0, the default value
   if (getRemoteDeviceParameter<EnumerationNode, std::string>("DeviceClockSelector").compare("Sensor") == 0
       || setRemoteDeviceParameter<EnumerationNode>("DeviceClockSelector", std::string("Sensor"))) {
@@ -473,17 +504,20 @@ void PeakCamNode::setDeviceParameters()
     }
   }
 
-  if (setRemoteDeviceParameter<EnumerationNode>("BalanceWhiteAuto", m_peakParams.BalanceWhiteAuto)) {
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: BalanceWhiteAuto set to '" << m_peakParams.BalanceWhiteAuto << "'");
+  if (remoteDeviceParameterExists<EnumerationNode>("BalanceWhiteAuto")) {
+    if (setRemoteDeviceParameter<EnumerationNode>("BalanceWhiteAuto", m_peakParams.BalanceWhiteAuto)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: BalanceWhiteAuto set to '" << m_peakParams.BalanceWhiteAuto << "'");
+    }
   }
-
   //Set Exposure related Parameter
   if(m_peakParams.ExposureAuto == "Off") {
-    if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
-    }
-    else {
-      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto cannot be set in the camera.");
+    if (remoteDeviceParameterExists<EnumerationNode>("ExposureAuto")) {
+      if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+      }
+      else {
+        RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto cannot be set in the camera.");
+      }
     }
     // Even if ExposureAuto is not a node/parameter, it may be possible to set the
     // ExposureTime, eg. on old Ueye camera.
@@ -494,9 +528,10 @@ void PeakCamNode::setDeviceParameters()
       }
     }
   }
-  else {
-    setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto);
-    RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+  else if (remoteDeviceParameterExists<EnumerationNode>("ExposureAuto")) {
+    if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
+      RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
+    }
   }
 
   //Set Gamma Parameter
@@ -818,12 +853,12 @@ void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<EnumerationNode> node)
 
 void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<FloatNode> node)
 {
-  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%f, %f]", node->Minimum(), node->Maximum());
+  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%f, %f] with increment %f", node->Minimum(), node->Maximum(), node->Increment());
 }
 
 void PeakCamNode::describeRemoteNodeRange(std::shared_ptr<IntegerNode> node)
 {
-  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%ld, %ld]", node->Minimum(), node->Maximum());
+  RCLCPP_ERROR(this->get_logger(), "[PeakCamNode]:    Valid range is [%ld, %ld] wit increment %ld", node->Minimum(), node->Maximum(), node->Increment());
 }
 
 void PeakCamNode::acquisitionLoop()
