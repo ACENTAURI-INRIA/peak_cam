@@ -633,6 +633,8 @@ void PeakCamNode::setDeviceParameters()
     }
   }
 
+  setFlashControlParameters();
+
   // Set Parameters for ROS Image
   auto toIPLPixelFormat = [](const std::string &fmt) {
     if (fmt == "Mono8") {
