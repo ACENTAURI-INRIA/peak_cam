@@ -82,7 +82,7 @@
     # Selects the internal event that will be the source to start the "FlashActive" signal.
     # eg. "ExposureActive", "ExposureStart", "GlobalFlashWindow", ...
     FlashReference: "ExposureStart"
-    # Sets the duration (in microseconds) of the "FlashActive" signal. Only used if the FlashReference 
+    # Sets the duration (in microseconds) of the "FlashActive" signal. Only used if the FlashReference
     # is ExposureStart.
     FlashDuration: 15000.0
     # Sets the delay (in microseconds) for the start of the "FlashActive" signal. Seems that it cannot be
