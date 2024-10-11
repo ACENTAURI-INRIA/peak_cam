@@ -1,0 +1,70 @@
+/**:
+  ros__parameters:
+    frame_id: "peak_cam"
+    image_topic: image_raw
+
+    # choose which device to enter by entering its serial number here
+    # if you dont know it, run this node once and all serial nodes should be printed out
+    selectedDevice: "4108774107"
+
+    # GV-5280 has a sensor of size 2464x2056
+    ImageHeight: 2048
+    ImageWidth: 2448
+
+    # If UseOffset is false, the acquired image will be automatically centered if it is smaller than the
+    # max image size. If UseOffset is true, the Offset(s) are used.
+    UseOffset: true
+    OffsetX: 8
+    OffsetY: 4
+
+    Binning: false
+    BinningSelector: "Sensor"
+    BinningVertical: 1
+    BinningHorizontal: 1
+
+    Decimation: false
+    DecimationSelector: "Sensor"
+    DecimationVertical: 1
+    DecimationHorizontal: 1
+
+    # Pixel clock of the image sensor, in MHz
+    PixelClock: 130.0
+
+    # Pixelformat
+    # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+    # Possible: ["Mono8", "RGB8", "BGR8", "BayerRG8"] as string!
+    # For GV-5280-CP-C camera, use "BayerRG8" to get more than 8 Hz Framerate : with "RGB8" the camera sets its framerate limit to around 8.15 Hz due to the
+    # DeviceLink available bandwidth, and the PixelClock upper limit is 75MHz.
+    PixelFormat: "BayerRG8"
+    ImagePixelFormat: "RGB8"
+    # With "BayerRG8" pixel format and output image as RGB8, the debayerization/demosaicing is done on the host using the IPL library
+    # from IDS. The most computation intensive mode is "HighQuality", otherwise "Fast" or "Classic" are a good tradeoff.
+    PixelConversionMode: "Fast"
+    # Another alternative for conversion is to set ImagePixelFormat to "BayerRG8" and use the debayer from package image_proc.
+    # See peak_cam_with_debayer.launch.py as an example.
+
+    # AcquisitionFrameRate in Hz
+    # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
+    AcquisitionFrameRate: 24
+
+    # ExposureAuto Setting
+    # If ExposureAuto is Off set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    ExposureAuto: "Once"
+
+    GainSelector: "AnalogAll"
+
+    # GainAuto Setting
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    GainAuto: "Continuous"
+
+    BalanceWhiteAuto: "Once"
+
+    TriggerMode: "Off"
+    # If TriggerMode is "Off", the following parameters are ignored.
+    TriggerSource: "Line0"     # This is the OptoCoupled Trigger Input.
+    TriggerActivation: "RisingEdge"
+    TriggerDivider: 2
+
+    # On Gigabit Ethernet.
+    DeviceLinkThroughputLimit: 125000000

@@ -24,9 +24,19 @@ def generate_launch_description():
                 name='peak_cam',
                 parameters=[
                     parameters_file,
-                    {'camera_info_url': camera_info_file}],
+                    {'PixelFormat': 'BayerRG8',
+                     'ImagePixelFormat': 'BayerRG8',
+                     'camera_info_url': camera_info_file}],
                 extra_arguments=[{'use_intra_process_comms': True}],
-            )
+            ),
+            ComposableNode(
+                package='image_proc',
+                plugin='image_proc::DebayerNode',
+                name='debayer_node',
+                remappings=[('image_raw', '/peak_cam/image_raw')],
+                parameters=[{'debayer': 3}],
+                extra_arguments=[{'use_intra_process_comms': True}],
+            ),
         ],
         output='screen'
     )
