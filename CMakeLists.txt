@@ -33,7 +33,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE "PEAK_CAM_BUILDING_DLL")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PEAK_CAM_BUILDING_DLL")  # Add "MULTICHUNKS" to use parameters EnablesChunks and DisabledChunks
 
 rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "peak_cam::PeakCamNode"

@@ -5,63 +5,153 @@
 # To add more parameters to your camera please view the IDS Vision Reference at 
 # https://de.ids-imaging.com/manuals-ids-peak.html 
 # and modify acquisition_parameters.hpp and setDeviceParameters() function in peak_cam class
+/**:
+  ros__parameters:
+    frame_id: "peak_cam"
+    image_topic: image_raw
 
-frame_id: "peak_cam"
-image_topic: image_raw
+    # choose which device to enter by entering its serial number here
+    # if you dont know it, run this node once and all serial nodes should be printed out
+    selectedDevice: "0000000000"
 
+    # Binning related parameters. These parameters can change the max image size: set ImageWidth and
+    # ImageHeight accordingly.
+    # Set to true or false to enable/disable Binning. If true, set the other Binning parameters
+    # accordingly.
+    Binning: true
+    # The BinningSelector parameter depends on the camera model, use ids_peak_cockpit
+    # to get the right one. For old uEye camera that use the 'uEye Translation Layer' of Peak, the usual
+    # value is "uEye".
+    BinningSelector: "Sensor"
+    # The binning factor, possible values depend on the camera model. On some models (for example
+    # UI-124x/UI-324x/UI-524x) the horizontal and vertical values must be the same.
+    BinningVertical: 1
+    BinningHorizontal: 1
 
-# choose which device to enter by entering its serial number here
-# if you dont know it, run this node once and all serial nodes should be printed out
-selectedDevice: "0000000000"
+    # Decimation related parameters. These parameters can change the max image size: set ImageWidth and
+    # ImageHeight accordingly.
+    Decimation: true
+    # The DecimationSelector parameter can be something like "Sensor", "Region0", etc. On old UEye cameras using the
+    # UEye Translation Layer, it can be "uEye".
+    DecimationSelector: "Sensor"
+    # The decimation mode is not an existing parameter on all IDS models, the default value is "", which means
+    # that it is not set in the camera, unless it has a non-empty value.
+    DecimationVerticalMode : "Discard"
+    DecimationVertical: 1
+    DecimationHorizontalMode: "Discard"
+    DecimationHorizontal: 1
 
-# configure your desired image size
-# needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
-ImageHeight: 320
-ImageWidth: 1088
+    # configure your desired image size
+    # needs to be divisble by 8 and smaller than your imager size (Max Width, Max Height)
+    ImageHeight: 1024
+    ImageWidth: 1280
 
-# Pixelformat
-# In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
-# Possible: ["Mono8", "RGB8", "BGR8"] as string! 
-PixelFormat: "RGB8"
+    # If UseOffset is false, the acquired image will be automatically centered if it is smaller than the
+    # max image size. If UseOffset is true, the Offset(s) are used.
+    UseOffset: false
+    OffsetX: 0
+    OffsetY: 0
 
-# ExposureTime in μs
-# limits the Acquisition Framerate
-# When ExposureAuto is set to "Once" or "Continuous" the value won't be used
-ExposureTime: 5000
+    # Pixel clock of the image sensor, in MHz. Set to 0.0 if the default or the current value of the camera is ok.
+    PixelClock: 40.0
 
-# AcquisitionFrameRate in Hz
-# WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "rostopic hz /cameratopic"
-AcquisitionFrameRate: 10
+    # Pixelformat: this is the pixel format of the image comming from the camera. With GEV cameras, depending on the image size, it
+    # is sometimes necessary to ask for BayerRG8 in order to cope with the Ethernet bandwidth.
+    # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
+    # Possible: ["Mono8", "RGB8", "BGR8", "BayerRG8"] as string!
+    PixelFormat: "RGB8"
 
-# Gamma
-# Range [0.3, ..., 3.0]
-# If no Gamma correction ist needed set to 1.0
-Gamma: 1.0
+    # This is the pixel format of the ROS image published on the image topic. With RGB8, the default, the
+    # image can be shown with Rviz. For other formats, a converter from the image_proc ROS2 package can be
+    # used to get the color RGB image.
+    ImagePixelFormat: "RGB8"
 
-# ExposureAuto Setting 
-# If ExposureAuto On set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
-# Possible: ["Off", "Once", "Continuous"] as string! 
-ExposureAuto: "Continuous"
+    # PixelConversionMode
+    # If the pixel conversion is done on the host, for example if PixelFormat is "BayerRG8", it is possible to choose the conversion
+    # mode. IDS provides 3 modes (see peak::ipl::ConversionMode class).
+    # Possible value: ["Fast", "Classic", "HighQuality"]
+    PixelConversionMode: "Fast"
 
-# GainAuto Setting 
-# Possible: ["Off", "Once", "Continuous"] as string! 
-GainAuto: "Continuous"
+    # AcquisitionFrameRate in Hz
+    # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
+    AcquisitionFrameRate: 10
 
-# GainSelector Setting 
-# Possible: ["AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
-GainSelector: "DigitalAll"
+    # Flash Control related parameters.
+    # Activate the generation of the flash signal if set to true.
+    FlashActive: true
+    # Selects the internal event that will be the source to start the "FlashActive" signal.
+    # eg. "ExposureActive", "ExposureStart", "GlobalFlashWindow", ...
+    FlashReference: "ExposureStart"
+    # Sets the duration (in microseconds) of the "FlashActive" signal. Only used if the FlashReference 
+    # is ExposureStart.
+    FlashDuration: 15000.0
+    # Sets the delay (in microseconds) for the start of the "FlashActive" signal. Seems that it cannot be
+    # smaller than 1us...
+    FlashStartDelay: 1.0
+    # Invert the signal driving the optocoupled output (Line1).
+    FlashInvertSignal: false
 
-# Flash Control related parameters.
-# Activate the generation of the flash signal if set to true.
-FlashActive: true
-# Selects the internal event that will be the source to start the "FlashActive" signal.
-# eg. "ExposureActive", "ExposureStart", "GlobalFlashWindow", ...
-FlashReference: "ExposureStart"
-# Sets the duration (in microseconds) of the "FlashActive" signal. Only used if the FlashReference 
-# is ExposureStart.
-FlashDuration: 15000.0
-# Sets the delay (in microseconds) for the start of the "FlashActive" signal. Seems that it cannot be
-# smaller than 1us...
-FlashStartDelay: 1.0
-# Invert the signal driving the optocoupled output (Line1).
-FlashInvertSignal: false
+    # Gamma
+    # Range [0.3, ..., 3.0]
+    # If no Gamma correction is needed set to 1.0
+    Gamma: 1.0
+
+    # ExposureTime in μs
+    # can indirectly set limits on the Acquisition Framerate
+    # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
+    ExposureTime: 5000
+
+    # ExposureAuto Setting
+    # If ExposureAuto is Off set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    ExposureAuto: "Off"
+
+    # GainSelector Setting, this designates the actual gain that will be
+    # controlled with either GainAuto or Gain.
+    # Possible: ["All", "AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
+    GainSelector: "All"
+
+    # GainAuto Setting
+    # Possible: ["Off", "Once", "Continuous"] as string! 
+    GainAuto: "Continuous"
+
+    # If GainAuto is "Off", the following value is applied to the gain selected by GainSelector.
+    Gain: 1.0
+
+    # Set to "On" to activate trigger based acquisition and use other Trigger related parameters to specify the triggering events,
+    # or "Off" for freerun acquisition using specified frame rate : in this case, the other TriggerXXX parameters are ignored.
+    # GenICam gives several choices for the event being triggered, named "TriggerSlector" such as "ExposureStart", "AcquisitionStart",
+    # "AcquisitionEnd", etc. Currently peak_cam uses "ExposureStart".
+    TriggerMode: "Off"
+
+    # Specifies the internal signal or physical input Line to use as the trigger source. 
+    # Acceptable values depend on the camera, but "Software" usually means a software triggered acquisition, "Line0" is the
+    # optocoupled trigger input on most IDS cameras, GPIO1 is called "Line2" (Line1 is usually the flash output), etc.
+    TriggerSource: "Line0"
+
+    # This parameter sets the kind of events expected on the TriggerSource. Possible values are, for example,
+    # "RisingEdge", "FallingEdge", "AnyEdge", "LevelHigh", "LevelLow".
+    TriggerActivation: "RisingEdge"
+
+    # Divider of the triggering events (the one specified by TriggerActivation).
+    TriggerDivider: 1
+
+    # Enable/Disable PTP (IEEE1588) on the camera. Actually used only with camera that support this feature
+    PtpEnable: false
+
+    # If PTP is enabled, this setting, if true, forces camera to act as a PTP slave only. Ignored otherwise
+    PtpSlaveOnly: false
+
+    # If True Chunk data (ie. metadata) is included in the payload of the image. if False Chunk data is not included.
+    # For each required kind of metadata, set ChunkSelector and enable it using ChunkEnable.
+    ChunkModeActive: false
+    # Set this parameter to the metadata expected to be transmitted in the image payload and use ChunkEnable to
+    # enable it. Values for ChunkSelector are, for example, "Timestamp", "PixelFormat", "Gain", etc. depending on
+    # the camera.
+    ChunkSelector: ""
+    ChunkEnable: false
+
+    # A comma separated list of Chunks to enable in the camera. Can be used instead of ChunkSelector and ChunkEnable to
+    # enable several chunks. Not yet implemented.
+    # EnabledChunks: ""
+    # DisabledChunks: ""

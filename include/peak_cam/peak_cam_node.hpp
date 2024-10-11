@@ -38,6 +38,7 @@
 
 #include <iostream>
 #include <atomic>
+#include <memory>
 
 //ROS Headers
 #include "camera_info_manager/camera_info_manager.hpp"
@@ -49,7 +50,15 @@
 
 //OpenCV Headers
 #include "opencv2/opencv.hpp"
+#if defined __has_include
+#if __has_include("cv_bridge/cv_bridge.hpp")
+#include "cv_bridge/cv_bridge.hpp"
+#else
 #include "cv_bridge/cv_bridge.h"
+#endif
+#else
+#include "cv_bridge/cv_bridge.h"
+#endif
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
@@ -64,6 +73,11 @@
 
 namespace peak_cam
 {
+
+using peak::core::nodes::EnumerationNode;
+using peak::core::nodes::FloatNode;
+using peak::core::nodes::BooleanNode;
+using peak::core::nodes::IntegerNode;
 
 class PeakCamNode : public rclcpp::Node
 {
@@ -81,6 +95,8 @@ private:
   std::shared_ptr<peak::core::DataStream> m_dataStream;
   std::shared_ptr<peak::core::Device> m_device;
   std::shared_ptr<peak::core::NodeMap> m_nodeMapRemoteDevice;
+
+  peak::ipl::PixelFormatName m_inputPixelFormat;
   peak::ipl::PixelFormatName m_pixelFormat;
   
   std::string m_image_encoding;
@@ -89,7 +105,10 @@ private:
 
   rclcpp::TimerBase::SharedPtr m_acquisitionTimer;
 
-  cv_bridge::CvImagePtr m_cvImage;
+  cv::Mat m_cvImage;
+  cv_bridge::CvImagePtr m_cvImagePtr;
+  std::unique_ptr<peak::ipl::ImageConverter> m_imageConverter;
+  peak::ipl::ConversionMode conversionMode{peak::ipl::ConversionMode::Fast};
 
   // Camera Parameters
   Peak_Params m_peakParams;
@@ -107,12 +126,133 @@ private:
   void openDevice();
   void setDeviceParameters();
   void setFlashControlParameters();
+  void setPTPDeviceParameters();
   void closeDevice();
 
-  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::EnumerationNode> node, const std::string &value);
-  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::FloatNode> node, const double value);
-  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::IntegerNode> node, const int value);
-  bool setRemoteDeviceParameter(std::shared_ptr<peak::core::nodes::BooleanNode> node, const bool value);
+  // Various helper functions to help for the decalaration of parameters.
+  template<typename T>
+    void declareParameter(const std::string &name, const T& default_value, const std::string &description, T& storage);
+  template<typename T>
+    void declareParameter(const std::string &name, const T& default_value, T& storage);
+  void declareParameter(const std::string &name, const char *default_value, const std::string &description, std::string& storage)
+  {
+    this->declareParameter(name, std::string(default_value), description, storage);
+  }
+  void declareParameter(const std::string &name, const char *default_value, std::string& storage)
+  {
+    this->declareParameter(name, std::string(default_value), storage);
+  }
+
+  // Various helper functions to set/get parameter values in the camera
+
+  template<class N>
+    bool remoteDeviceParameterExists(const std::string &node_name)
+  {
+    try {
+      auto node __attribute__((unused)) = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return true;
+    }
+    catch (const peak::core::NotFoundException &) {
+      return false;
+    }
+  }
+
+  template<class N>
+    bool remoteDeviceParameterExists(const char *node_name)
+  {
+    return remoteDeviceParameterExists<N>(std::string(node_name));
+  }
+
+  template<class N, typename V>
+    bool setRemoteDeviceParameter(const std::string &node_name, const V& value);
+
+  template<class N, typename V>
+    V getRemoteDeviceParameter(const std::string &node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeValue(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
+  }
+
+  template<class N, typename V>
+    V getRemoteDeviceParameter(const char *node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeValue(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name);
+      return V{};
+    }
+  }
+
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::EnumerationNode> node, const std::string &value) { node->SetCurrentEntry(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::FloatNode> node, const double value) { node->SetValue(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::IntegerNode> node, const int64_t value) { node->SetValue(value); }
+  void setRemoteNodeValue(std::shared_ptr<peak::core::nodes::BooleanNode> node, const bool value) { node->SetValue(value); }
+
+  std::string getRemoteNodeValue(std::shared_ptr<peak::core::nodes::EnumerationNode> node) { return node->CurrentEntry()->SymbolicValue(); }
+  double getRemoteNodeValue(std::shared_ptr<peak::core::nodes::FloatNode> node) { return node->Value(); }
+  int64_t getRemoteNodeValue(std::shared_ptr<peak::core::nodes::IntegerNode> node) { return node->Value(); }
+  bool getRemoteNodeValue(std::shared_ptr<peak::core::nodes::BooleanNode> node) { return node->Value(); }
+
+  template<class N, typename V>
+    V getRemoteDeviceParameterMaximum(const std::string &node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeMaximum<N, V>(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
+  }
+
+  template<class N, typename V>
+    V getRemoteDeviceParameterMinimum(const std::string &node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeMinimum<N, V>(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
+  }
+
+  template<class N, typename V>
+    V getRemoteDeviceParameterIncrement(const std::string &node_name)
+  {
+    try {
+      auto node = m_nodeMapRemoteDevice->FindNode<N>(node_name);
+      return getRemoteNodeIncrement<N, V>(node);
+    }
+    catch (const peak::core::NotFoundException &e) {
+      RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: %s is not a parameter for this camera", node_name.c_str());
+      return V{};
+    }
+  }
+
+  template <class N, typename V>
+    V getRemoteNodeMaximum(std::shared_ptr<N> node) { return node->Maximum(); }
+  template <class N, typename V>
+    V getRemoteNodeMinimum(std::shared_ptr<N> node) { return node->Minimum(); }
+  template <class N, typename V>
+    V getRemoteNodeIncrement(std::shared_ptr<N> node) { return node->Increment(); }
+
+  void describeRemoteNodeRange(std::shared_ptr<EnumerationNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<FloatNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<IntegerNode> node);
+  void describeRemoteNodeRange(std::shared_ptr<BooleanNode>) {}
+
 };
 
 } // namespace peak_cam
