@@ -55,7 +55,9 @@ PeakCamNode::PeakCamNode(const rclcpp::NodeOptions & options)
   m_imageConverter = std::make_unique<peak::ipl::ImageConverter>();
 
   auto publisher_options = rclcpp::PublisherOptions();
+#ifndef FOXY
   publisher_options.qos_overriding_options = rclcpp::QosOverridingOptions::with_default_policies();
+#endif
   m_pubImage = this->create_publisher<sensor_msgs::msg::Image>(std::string(this->get_name()) + "/" +  m_imageTopic, 1, publisher_options);
   m_pubCameraInfo =
     this->create_publisher<sensor_msgs::msg::CameraInfo>(std::string(this->get_name()) + "/camera_info", 1, publisher_options);
