@@ -134,13 +134,36 @@ void PeakCamNode::getParams()
   declareParameter("selectedDevice", "0000000000", m_peakParams.selectedDevice);
 
   declareParameter("ExposureAuto", "Off", m_peakParams.ExposureAuto);
-  declareParameter("PixelFormat", "Mono8", m_peakParams.PixelFormat);
+  declareParameter("BrightnessAutoExposureTimeLimitMode", "Off",
+      "Controls if the limits BrightnessAutoExposureTimeMin and BrightnessAutoExposureTimeMax are active", m_peakParams.AutoExposureTimeLimitMode);
+  declareParameter("BrightnessAutoExposureTimeMin", 0.0, "Minimum limit of ExposureTime when ExposureAuto is enabled", m_peakParams.AutoExposureTimeMin);
+  declareParameter("BrightnessAutoExposureTimeMax", 0.0, "Maximum limit of ExposureTime when ExposureAuto is enabled", m_peakParams.AutoExposureTimeMax);
+
+  // BrightnessAutoPercentile
+  //   Defines the percentage of pixels that must be brighter than BrightnessAutoTarget. BrightnessAutoPercentile is
+  //   a parameter for brightness auto features like ExposureAuto and GainAuto.
+  // BrightnessAutoTarget
+  //   Sets the target value for brightness auto features like ExposureAuto and GainAuto.
+  //   The percentage of pixels, that must be brighter than BrightnessAutoTarget, is defined in BrightnessAutoPercentile.
+  //   The value of BrigthnessAutoTarget relates to the current PixelFormat.
+  // BrightnessAutoTargetTolerance
+  //   Tolerance for BrightnessAutoTarget (in 8 bit). Defines an acceptance interval that surrounds BrightnessAutoTarget.
+  //   If the brightness auto algorithm reaches a value within this acceptance interval, the algorithm has converged.
+
+  declareParameter("PixelFormat", "RGB8", m_peakParams.PixelFormat);
   declareParameter("ImagePixelFormat", "RGB8", m_peakParams.ImagePixelFormat);
   declareParameter("PixelConversionMode", "Fast", m_peakParams.PixelConversionMode);
   
   declareParameter("GainSelector", "All", m_peakParams.GainSelector);
   declareParameter("GainAuto", "Off", m_peakParams.GainAuto);
   declareParameter("Gain", 1.0, m_peakParams.Gain);
+  // BrightnessAutoGainLimitMode  "On" "Off"
+  //   Controls if the limits BrightnessAutoGainMin and BrightnessAutoGainMax are active. When disabled, 
+  //   the range of Gain is only limited by sensor properties. When enabled, the range of Gain is limited
+  //   additionally by BrightnessAutoGainMin and BrightnessAutoGainMax. When a brightness auto features
+  //   is active, the Gain can vary within this range.
+  // BrightnessAutoGainMin  Minimum limit of Gain when GainAuto is enabled.
+  // BrightnessAutoGainMax  Maximum limit of Gain when GainAuto is enabled.
 
   declareParameter("BalanceWhiteAuto", "Off", m_peakParams.BalanceWhiteAuto);
 
@@ -206,6 +229,13 @@ void PeakCamNode::getParams()
   }
   RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
+  if (m_peakParams.ExposureAuto.compare("Off") != 0) {
+    RCLCPP_INFO(this->get_logger(), "  BrightnessAutoExposureTimeLimitMode: %s", m_peakParams.AutoExposureTimeLimitMode.c_str());
+    if (m_peakParams.AutoExposureTimeLimitMode.compare("On") == 0) {
+      RCLCPP_INFO(this->get_logger(), "  BrightnessAutoExposureTimeMin: %f", m_peakParams.AutoExposureTimeMin);
+      RCLCPP_INFO(this->get_logger(), "  BrightnessAutoExposureTimeMax: %f", m_peakParams.AutoExposureTimeMax);
+    }
+  }
   RCLCPP_INFO(this->get_logger(), "  GainSelector: %s", m_peakParams.GainSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  GainAuto: %s", m_peakParams.GainAuto.c_str());
   RCLCPP_INFO(this->get_logger(), "  Gain: %f", m_peakParams.Gain);
@@ -531,6 +561,21 @@ void PeakCamNode::setDeviceParameters()
     }
   }
   else if (remoteDeviceParameterExists<EnumerationNode>("ExposureAuto")) {
+    // ExposureAuto is "Continuous" or "Once" and related setting exists in the camera.
+    if (remoteDeviceParameterExists<EnumerationNode>("BrightnessAutoExposureTimeLimitMode")) {
+      // Set the limitation mode
+      setRemoteDeviceParameter<EnumerationNode>("BrightnessAutoExposureTimeLimitMode", m_peakParams.AutoExposureTimeLimitMode);
+      if (m_peakParams.AutoExposureTimeLimitMode.compare("On") == 0) {
+        if (m_peakParams.AutoExposureTimeMin > 0.0 && remoteDeviceParameterExists<FloatNode>("BrightnessAutoExposureTimeMin")) {
+          setRemoteDeviceParameter<FloatNode>("BrightnessAutoExposureTimeMin", m_peakParams.AutoExposureTimeMin);
+        }
+        if (m_peakParams.AutoExposureTimeMax > 0.0
+              && m_peakParams.AutoExposureTimeMax >= m_peakParams.AutoExposureTimeMin
+              && remoteDeviceParameterExists<FloatNode>("BrightnessAutoExposureTimeMax")) {
+          setRemoteDeviceParameter<FloatNode>("BrightnessAutoExposureTimeMax", m_peakParams.AutoExposureTimeMax);
+        }
+      }
+    }
     if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
     }
