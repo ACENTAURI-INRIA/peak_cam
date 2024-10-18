@@ -197,6 +197,9 @@ void PeakCamNode::getParams()
   declareParameter("ChunkSelector", "Timestamp", m_peakParams.ChunkSelector);
   declareParameter("ChunkEnable", false, m_peakParams.ChunkEnable);
 #endif
+
+  getFlashParams();
+
   RCLCPP_INFO(this->get_logger(), "Setting parameters to:");
   RCLCPP_INFO(this->get_logger(), "  frame_id: %s", m_frameId.c_str());
   RCLCPP_INFO(this->get_logger(), "  image_topic: %s", m_imageTopic.c_str());
@@ -260,6 +263,22 @@ void PeakCamNode::getParams()
   RCLCPP_INFO(this->get_logger(), "  ChunkSelector: %s", m_peakParams.ChunkSelector.c_str());
   RCLCPP_INFO(this->get_logger(), "  ChunkEnable: %i", m_peakParams.ChunkEnable);
 #endif
+  RCLCPP_INFO(this->get_logger(), "  FlashActive: %i", m_peakParams.FlashActive);
+  if (m_peakParams.FlashActive) {
+    RCLCPP_INFO(this->get_logger(), "  FlashReference: %s", m_peakParams.FlashReference.c_str());
+    RCLCPP_INFO(this->get_logger(), "  FlashDuration: %f", m_peakParams.FlashDuration);
+    RCLCPP_INFO(this->get_logger(), "  FlashStartDelay: %f", m_peakParams.FlashStartDelay);
+    RCLCPP_INFO(this->get_logger(), "  FlashInvertSignal: %i", m_peakParams.FlashInvertSignal);
+  }
+}
+
+void PeakCamNode::getFlashParams()
+{
+  declareParameter("FlashActive", false, m_peakParams.FlashActive);
+  declareParameter("FlashReference", "ExposureStart", m_peakParams.FlashReference);
+  declareParameter("FlashDuration", 0.0, m_peakParams.FlashDuration);
+  declareParameter("FlashStartDelay", 0.0, m_peakParams.FlashStartDelay);
+  declareParameter("FlashInvertSignal", false, m_peakParams.FlashInvertSignal);
 }
 
 template<typename T>
@@ -670,6 +689,8 @@ void PeakCamNode::setDeviceParameters()
     }
   }
 
+  setFlashControlParameters();
+
   // Set Parameters for ROS Image
   auto toIPLPixelFormat = [](const std::string &fmt) {
     if (fmt == "Mono8") {
@@ -770,6 +791,28 @@ void PeakCamNode::setDeviceParameters()
       }
     }
 #endif
+  }
+}
+
+void PeakCamNode::setFlashControlParameters()
+{
+  if ( ! m_peakParams.FlashActive) {
+    // Nothing to do ??
+    return;
+  }
+  if (m_peakParams.FlashDuration == 0) {
+    RCLCPP_WARN(this->get_logger(), "[PeakCamNode]: FlashDuration is 0, this will disable Flash, even if FlashActive is True");
+  }
+  setRemoteDeviceParameter<EnumerationNode>("FlashReference", m_peakParams.FlashReference);
+  if (m_peakParams.FlashReference.compare("ExposureStart") == 0) {
+    // Set Flash duration and start delay if the reference is the start of exposure
+    setRemoteDeviceParameter<FloatNode>("FlashDuration", m_peakParams.FlashDuration);
+    setRemoteDeviceParameter<FloatNode>("FlashStartDelay", m_peakParams.FlashStartDelay);
+  }
+  // Set the signal polarity based on the FlashInvertSignal parameter. Flash is Line1
+  if (setRemoteDeviceParameter<EnumerationNode>("LineSelector", std::string("Line1"))) {
+    setRemoteDeviceParameter<EnumerationNode>("LineSource", std::string("FlashActive"));
+    setRemoteDeviceParameter<BooleanNode>("LineInverter", m_peakParams.FlashInvertSignal);
   }
 }
 
@@ -939,7 +982,7 @@ void PeakCamNode::acquisitionLoop()
       m_cameraInfo.reset(new sensor_msgs::msg::CameraInfo(ci));
       m_cameraInfo->header = *m_header;
 
-      const size_t imageBufferSize __attribute__((unused)) = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
+      const size_t imageBufferSize = m_peakParams.ImageWidth * m_peakParams.ImageHeight * m_bytesPerPixel;
       // buffer processing start
       peak::ipl::Image image = peak::BufferTo<peak::ipl::Image>(buffer);
       size_t sizeBuffer __attribute__((unused)) = image.ByteCount();

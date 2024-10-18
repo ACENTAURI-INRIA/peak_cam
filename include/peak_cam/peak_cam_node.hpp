@@ -122,8 +122,10 @@ private:
   // acquisitionLoop function and bool are public to run on particular thread
   void acquisitionLoop();
   void getParams();
+  void getFlashParams();
   void openDevice();
   void setDeviceParameters();
+  void setFlashControlParameters();
   void setPTPDeviceParameters();
   void closeDevice();
 
