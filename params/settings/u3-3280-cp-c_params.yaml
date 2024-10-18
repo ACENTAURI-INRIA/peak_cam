@@ -35,6 +35,7 @@
     # In IDS Implemented: ["Mono8", "Mono10", "Mono12", "Mono10p", "Mono12p", "BayerRG8", "BayerRG10", "BayerRG12", "BayerRG10p", "BayerRG12p", "RGB8", "RGB10p32", "BGR8", "BGR10p32"]
     # Possible: ["Mono8", "RGB8", "BGR8"] as string! 
     PixelFormat: "RGB8"
+    ImagePixelFormat: "RGB8"
 
     # AcquisitionFrameRate in Hz
     # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
@@ -44,6 +45,11 @@
     # If ExposureAuto is Off set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
     # Possible: ["Off", "Once", "Continuous"] as string! 
     ExposureAuto: "Continuous"
+    BrightnessAutoExposureTimeLimitMode: "On"
+    # Minimum limit of ExposureTime when ExposureAuto is enabled.
+    BrightnessAutoExposureTimeMin: 5000.0
+    # Maximum limit of ExposureTime when ExposureAuto is enabled.
+    BrightnessAutoExposureTimeMax: 40000.0
 
     GainSelector: "AnalogAll"
 

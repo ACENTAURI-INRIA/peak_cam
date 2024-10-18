@@ -13,8 +13,11 @@
     ImageWidth: 1280
 
     PixelFormat: "RGB8"
+    ImagePixelFormat: "RGB8"
+
     PixelClock: 30.0
 
+    # UI-3240 Does not support ExposureAuto.
     ExposureAuto: "Off"
     # ExposureTime in μs
     # limits the Acquisition Framerate
