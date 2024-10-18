@@ -227,7 +227,7 @@ void PeakCamNode::getParams()
   else {
     RCLCPP_INFO(this->get_logger(), "  Decimation: disabled");
   }
-  RCLCPP_INFO(this->get_logger(), "  selectedDevice: %s", m_peakParams.selectedDevice.c_str());
+  RCLCPP_INFO(this->get_logger(), "  SelectedDevice: %s", m_peakParams.selectedDevice.c_str());
   RCLCPP_INFO(this->get_logger(), "  ExposureAuto: %s", m_peakParams.ExposureAuto.c_str());
   if (m_peakParams.ExposureAuto.compare("Off") != 0) {
     RCLCPP_INFO(this->get_logger(), "  BrightnessAutoExposureTimeLimitMode: %s", m_peakParams.AutoExposureTimeLimitMode.c_str());
@@ -574,11 +574,18 @@ void PeakCamNode::setDeviceParameters()
               && remoteDeviceParameterExists<FloatNode>("BrightnessAutoExposureTimeMax")) {
           setRemoteDeviceParameter<FloatNode>("BrightnessAutoExposureTimeMax", m_peakParams.AutoExposureTimeMax);
         }
+        RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: BrightnessAutoExposureTime in range [%.2f, %.2f] us",
+                m_peakParams.AutoExposureTimeMin, m_peakParams.AutoExposureTimeMax);
       }
     }
     if (setRemoteDeviceParameter<EnumerationNode>("ExposureAuto", m_peakParams.ExposureAuto)) {
       RCLCPP_INFO_STREAM(this->get_logger(), "[PeakCamNode]: ExposureAuto is set to '" << m_peakParams.ExposureAuto << "'");
     }
+  }
+  else {
+    // ExposureAuto is requested but not supported by the camera. Issue a warning.
+    // TODO: implement as a host feature ?
+    RCLCPP_INFO(this->get_logger(), "[PeakCamNode]: ExposureAuto is not a parameter for this camera.");
   }
 
   //Set Gamma Parameter
