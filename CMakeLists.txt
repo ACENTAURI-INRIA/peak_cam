@@ -6,6 +6,8 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
+string(TOUPPER "$ENV{ROS_DISTRO}" ROS_DISTRO)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -33,7 +35,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE "PEAK_CAM_BUILDING_DLL")  # Add "MULTICHUNKS" to use parameters EnablesChunks and DisabledChunks
+target_compile_definitions(${PROJECT_NAME} PRIVATE "PEAK_CAM_BUILDING_DLL" ${ROS_DISTRO})  # Add "MULTICHUNKS" to use parameters EnablesChunks and DisabledChunks
 
 rclcpp_components_register_node(${PROJECT_NAME}
   PLUGIN "peak_cam::PeakCamNode"

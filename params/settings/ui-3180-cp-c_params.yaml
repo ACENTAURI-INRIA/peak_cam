@@ -24,15 +24,18 @@
 
     # If false, the image will be centered (if less than the maximal size)
     UseOffset: false
-    # These offsets are ok to center a 1296x1024 image/ROI.
+    # These offsets are ok to center a 1296x1024 image/ROI when decimation by 2 is enabled.
     OffsetX: 656
     OffsetY: 512
 
     PixelFormat: "RGB8"
+    ImagePixelFormat: "RGB8"
+
     PixelClock: 120.0
 
     # Enable or disable the AutoExposure feature. Values are "Once", "Continuous" or "Off". When "Off", the parameter
     # ExposureTime is used to set the exposure time of the camera.
+    # UI-3180 Does not support ExposureAuto.
     ExposureAuto: "Off"
     # ExposureTime in μs
     # limits the Acquisition Framerate

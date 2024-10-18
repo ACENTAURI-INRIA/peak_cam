@@ -66,6 +66,9 @@ struct Peak_Params
   int DecimationHorizontal{1};
   double Gamma{1.2};
   std::string ExposureAuto{"Off"};
+  std::string AutoExposureTimeLimitMode{"Off"};
+  double AutoExposureTimeMin{0.0};
+  double AutoExposureTimeMax{0.0};
   std::string GainAuto{"Off"};
   std::string GainSelector;
   double Gain{1.0};

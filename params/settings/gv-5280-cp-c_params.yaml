@@ -5,7 +5,7 @@
 
     # choose which device to enter by entering its serial number here
     # if you dont know it, run this node once and all serial nodes should be printed out
-    selectedDevice: "4108774107"
+    selectedDevice: "4108774102"  # "4108774107"
 
     # GV-5280 has a sensor of size 2464x2056
     ImageHeight: 2048
@@ -18,7 +18,7 @@
     OffsetY: 4
 
     Binning: false
-    BinningSelector: "Sensor"
+    # BinningSelector: "Sensor"
     BinningVertical: 1
     BinningHorizontal: 1
 
@@ -39,24 +39,29 @@
     ImagePixelFormat: "RGB8"
     # With "BayerRG8" pixel format and output image as RGB8, the debayerization/demosaicing is done on the host using the IPL library
     # from IDS. The most computation intensive mode is "HighQuality", otherwise "Fast" or "Classic" are a good tradeoff.
-    PixelConversionMode: "Fast"
+    PixelConversionMode: "Classic"
     # Another alternative for conversion is to set ImagePixelFormat to "BayerRG8" and use the debayer from package image_proc.
     # See peak_cam_with_debayer.launch.py as an example.
 
     # AcquisitionFrameRate in Hz
     # WATCH OUT when AcquisitionFrameRate is too high there might be some latency. Check "ros2 topic hz /cameratopic"
-    AcquisitionFrameRate: 24
+    AcquisitionFrameRate: 20
 
     # ExposureAuto Setting
     # If ExposureAuto is Off set ExposureTime to any value ExposureTime [sek] < 1 / AcquisitionFrameRate [sek]
     # Possible: ["Off", "Once", "Continuous"] as string! 
-    ExposureAuto: "Once"
+    ExposureAuto: "Continuous"
+    BrightnessAutoExposureTimeLimitMode: "On"
+    # Minimum limit of ExposureTime when ExposureAuto is enabled.
+    BrightnessAutoExposureTimeMin: 5000.0
+    # Maximum limit of ExposureTime when ExposureAuto is enabled.
+    BrightnessAutoExposureTimeMax: 50000.0
 
     GainSelector: "AnalogAll"
 
     # GainAuto Setting
     # Possible: ["Off", "Once", "Continuous"] as string! 
-    GainAuto: "Continuous"
+    GainAuto: "Once"
 
     BalanceWhiteAuto: "Once"
 

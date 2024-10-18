@@ -53,7 +53,7 @@
     OffsetY: 0
 
     # Pixel clock of the image sensor, in MHz. Set to 0.0 if the default or the current value of the camera is ok.
-    PixelClock: 40.0
+    PixelClock: 0.0
 
     # Pixelformat: this is the pixel format of the image comming from the camera. With GEV cameras, depending on the image size, it
     # is sometimes necessary to ask for BayerRG8 in order to cope with the Ethernet bandwidth.
@@ -96,7 +96,8 @@
     # If no Gamma correction is needed set to 1.0
     Gamma: 1.0
 
-    # ExposureTime in μs
+    # ExposureTime in μs (microseconds)
+    # Sets the Exposure time when ExposureMode is Timed and ExposureAuto is Off. This controls the duration where the photosensitive cells are exposed to light.
     # can indirectly set limits on the Acquisition Framerate
     # When ExposureAuto is set to "Once" or "Continuous" the value won't be used
     ExposureTime: 5000
@@ -106,13 +107,30 @@
     # Possible: ["Off", "Once", "Continuous"] as string! 
     ExposureAuto: "Off"
 
+    # Controls if the limits BrightnessAutoExposureTimeMin and BrightnessAutoExposureTimeMax are active.
+    # When disabled, the range of ExposureTime is only limited by sensor properties and AcquisitionFrameRate.
+    # When enabled, the range of ExposureTime is limited additionally by BrightnessAutoExposureTimeMin and BrightnessAutoExposureTimeMax.
+    # When a brightness auto features is active, the ExposureTime can vary within this range.
+    BrightnessAutoExposureTimeLimitMode: "Off"
+    # Minimum limit of ExposureTime when ExposureAuto is enabled. Unit is microseconds.
+    # Set to 0.0 to disable setting this limit
+    BrightnessAutoExposureTimeMin: 0.0
+    # Maximum limit of ExposureTime when ExposureAuto is enabled. Unit is microseconds.
+    # When brightness auto features are active, the upper range of ExposureTime will be limited by BrightnessAutoExposureTimeMax,
+    # even if the frame rate would allow for longer exposure.
+    # Set to 0.0 to disable setting this limit
+    BrightnessAutoExposureTimeMax: 0.0
+
     # GainSelector Setting, this designates the actual gain that will be
     # controlled with either GainAuto or Gain.
     # Possible: ["All", "AnalogAllSource", "AnalogAll", "AnalogRed", "AnalogGreen", "AnalogBlue", "DigitalAll", "DigitalRed", "DigitalGreen", "DigitalBlue"] as string! 
     GainSelector: "All"
 
     # GainAuto Setting
-    # Possible: ["Off", "Once", "Continuous"] as string! 
+    # Possible: ["Off", "Once", "Continuous"] as string!
+    # Sets the automatic gain control. Neither AcquisitionFrameRate nor ExposureTime settings are changed. GainAuto can be combined with ExposureAuto.
+    # GainAuto modifies AnalogAll gain, if the sensor supports it. Otherwise DigitalAll gain is used. This feature is not available
+    # with the SensorOperationMode Linescan.
     GainAuto: "Continuous"
 
     # If GainAuto is "Off", the following value is applied to the gain selected by GainSelector.
