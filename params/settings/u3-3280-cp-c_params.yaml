@@ -67,3 +67,9 @@
 
     # 400 MBps is for USB3.
     DeviceLinkThroughputLimit: 400000000
+
+    FlashActive: true
+    FlashReference: "ExposureStart"
+    FlashDuration: 15000.0
+    FlashStartDelay: 1.0
+    FlashInvertSignal: false

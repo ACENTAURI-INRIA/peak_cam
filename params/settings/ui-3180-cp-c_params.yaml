@@ -63,3 +63,9 @@
   
     # Divider of the triggering events (the one specified by TriggerActivation).
     TriggerDivider: 1
+
+    FlashActive: true
+    FlashReference: "ExposureStart"
+    FlashDuration: 15000.0
+    FlashStartDelay: 1.0
+    FlashInvertSignal: false

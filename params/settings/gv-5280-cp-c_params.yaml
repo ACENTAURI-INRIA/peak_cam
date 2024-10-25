@@ -73,3 +73,9 @@
 
     # On Gigabit Ethernet.
     DeviceLinkThroughputLimit: 125000000
+
+    FlashActive: true
+    FlashReference: "ExposureStart"
+    FlashDuration: 15000.0
+    FlashStartDelay: 1.0
+    FlashInvertSignal: false

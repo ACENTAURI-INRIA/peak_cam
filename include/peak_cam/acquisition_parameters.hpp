@@ -93,6 +93,11 @@ struct Peak_Params
   std::string ChunkSelector{"Timestamp"};
   bool ChunkEnable{true};
 #endif
+  bool FlashActive{false};
+  std::string FlashReference{""};
+  double FlashDuration{0.0};
+  double FlashStartDelay{1.0};
+  bool FlashInvertSignal{false};
 };
 }
 #endif  // PEAK_CAM__ACQUISITION_PARAMETERS_HPP_
